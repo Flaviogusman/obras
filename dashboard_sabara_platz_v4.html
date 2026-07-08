@@ -1,0 +1,2241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório Semanal – Sabará Platz</title>
+
+<!-- Chart.js para gráficos -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- SheetJS para leitura de XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- jsPDF para exportação PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+/* ============================================
+   VARIÁVEIS DE TEMA – PADRÃO (CLARO)
+   ============================================ */
+:root {
+  --bg-page:        #F0F2F5;
+  --bg-card:        #FFFFFF;
+  --bg-header:      #1A2341;
+  --bg-tab-active:  #2563EB;
+  --bg-tab:         #FFFFFF;
+  --color-primary:  #2563EB;
+  --color-accent:   #F59E0B;
+  --color-text:     #1E293B;
+  --color-muted:    #64748B;
+  --color-border:   #E2E8F0;
+  --color-success:  #10B981;
+  --color-danger:   #EF4444;
+  --color-tab-text: #64748B;
+  --color-tab-active-text: #FFFFFF;
+  --shadow-card:    0 2px 12px rgba(0,0,0,0.08);
+  --radius:         12px;
+  --radius-sm:      8px;
+  --font-main:      'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* Paleta gráficos */
+  --chart-1: #2563EB;
+  --chart-2: #F59E0B;
+  --chart-3: #10B981;
+  --chart-4: #EF4444;
+  --chart-5: #8B5CF6;
+  --chart-6: #06B6D4;
+}
+
+/* ============================================
+   TEMA DARK
+   ============================================ */
+[data-theme="dark"] {
+  --bg-page:        #0F172A;
+  --bg-card:        #1E293B;
+  --bg-header:      #0A0F1E;
+  --bg-tab-active:  #3B82F6;
+  --bg-tab:         #1E293B;
+  --color-primary:  #3B82F6;
+  --color-accent:   #F59E0B;
+  --color-text:     #F1F5F9;
+  --color-muted:    #94A3B8;
+  --color-border:   #334155;
+  --color-success:  #34D399;
+  --color-danger:   #F87171;
+  --color-tab-text: #94A3B8;
+  --color-tab-active-text: #FFFFFF;
+  --shadow-card:    0 2px 16px rgba(0,0,0,0.4);
+}
+
+/* ============================================
+   TEMA VERMELHO/PRETO/BRANCO
+   ============================================ */
+[data-theme="red"] {
+  --bg-page:        #F5F5F5;
+  --bg-card:        #FFFFFF;
+  --bg-header:      #1A1A1A;
+  --bg-tab-active:  #DC2626;
+  --bg-tab:         #FFFFFF;
+  --color-primary:  #DC2626;
+  --color-accent:   #1A1A1A;
+  --color-text:     #1A1A1A;
+  --color-muted:    #6B6B6B;
+  --color-border:   #E5E5E5;
+  --color-success:  #16A34A;
+  --color-danger:   #DC2626;
+  --color-tab-text: #6B6B6B;
+  --color-tab-active-text: #FFFFFF;
+  --shadow-card:    0 2px 12px rgba(0,0,0,0.1);
+  --chart-1: #DC2626;
+  --chart-2: #1A1A1A;
+  --chart-3: #737373;
+  --chart-4: #EF4444;
+  --chart-5: #9CA3AF;
+  --chart-6: #4B5563;
+}
+
+/* ============================================
+   TEMA AZUL
+   ============================================ */
+[data-theme="blue"] {
+  --bg-page:        #EFF6FF;
+  --bg-card:        #FFFFFF;
+  --bg-header:      #1E3A8A;
+  --bg-tab-active:  #1D4ED8;
+  --bg-tab:         #DBEAFE;
+  --color-primary:  #1D4ED8;
+  --color-accent:   #0EA5E9;
+  --color-text:     #1E3A8A;
+  --color-muted:    #3B82F6;
+  --color-border:   #BFDBFE;
+  --color-success:  #0284C7;
+  --color-danger:   #2563EB;
+  --color-tab-text: #3B82F6;
+  --color-tab-active-text: #FFFFFF;
+  --shadow-card:    0 2px 12px rgba(29,78,216,0.12);
+  --chart-1: #1D4ED8;
+  --chart-2: #0EA5E9;
+  --chart-3: #38BDF8;
+  --chart-4: #7DD3FC;
+  --chart-5: #93C5FD;
+  --chart-6: #1E3A8A;
+}
+
+/* ============================================
+   RESET E BASE
+   ============================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg-page);
+  color: var(--color-text);
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+  font-size: 14px;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+.header {
+  background: var(--bg-header);
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left { display: flex; flex-direction: column; gap: 2px; }
+
+.header-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.header-subtitle {
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.header-subtitle span { color: var(--color-accent); font-weight: 600; }
+
+.header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ============================================
+   BOTÕES
+   ============================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-main);
+  transition: all 0.2s;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary   { background: var(--color-primary); color: #fff; }
+.btn-accent    { background: var(--color-accent); color: #1A2341; }
+.btn-dark      { background: #334155; color: #fff; }
+.btn-outline   { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,0.35); }
+.btn-sm        { padding: 6px 10px; font-size: 11px; }
+
+.btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+/* Seletor de tema */
+.theme-select {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 12px;
+  font-family: var(--font-main);
+  cursor: pointer;
+  outline: none;
+}
+
+.theme-select option { background: #1A2341; color: #fff; }
+
+/* ============================================
+   CARGA DE DADOS
+   ============================================ */
+.upload-bar {
+  background: var(--bg-card);
+  border-bottom: 2px solid var(--color-border);
+  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.upload-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.upload-label::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+.file-input-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.file-input-wrapper input[type="file"] {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.last-update {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.last-update span { color: var(--color-primary); font-weight: 600; }
+
+/* ============================================
+   ABAS
+   ============================================ */
+.tabs-wrapper {
+  background: var(--bg-card);
+  border-bottom: 2px solid var(--color-border);
+  padding: 0 32px;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--color-tab-text);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-main);
+  cursor: pointer;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover { color: var(--color-primary); }
+
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  background: rgba(37,99,235,0.05);
+}
+
+/* ============================================
+   CONTEÚDO PRINCIPAL
+   ============================================ */
+.main-content { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ============================================
+   SEÇÕES
+   ============================================ */
+.section {
+  margin-bottom: 28px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.section-badge {
+  background: var(--color-primary);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+/* ============================================
+   GRID LAYOUTS
+   ============================================ */
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+@media (max-width: 1100px) {
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  .grid-3, .grid-2, .grid-4 { grid-template-columns: 1fr; }
+  .main-content { padding: 16px; }
+  .header { padding: 14px 16px; }
+  .tabs-wrapper { padding: 0 16px; }
+  .upload-bar { padding: 10px 16px; }
+}
+
+/* ============================================
+   KPIs
+   ============================================ */
+.kpi-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.kpi-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-page);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-primary);
+}
+
+.kpi-label { font-size: 11px; color: var(--color-muted); font-weight: 600; }
+
+.kpi-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.kpi-value.positive { color: var(--color-success); }
+.kpi-value.negative { color: var(--color-danger); }
+.kpi-value.neutral  { color: var(--color-primary); }
+
+/* ============================================
+   STATUS GROUP (rosca + KPIs)
+   ============================================ */
+.status-group-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .status-group-grid { grid-template-columns: 1fr; }
+}
+
+.status-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-card-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  align-self: flex-start;
+}
+
+.donut-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  width: 100%;
+}
+
+.donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.donut-label {
+  font-size: 10px;
+  color: var(--color-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.donut-canvas-wrap { position: relative; width: 110px; height: 110px; }
+
+.donut-center-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-center-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-text);
+  display: block;
+}
+
+.donut-center-sub {
+  font-size: 9px;
+  color: var(--color-muted);
+  display: block;
+}
+
+.kpi-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: space-around;
+}
+
+.kpi-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-page);
+  min-width: 80px;
+}
+
+.kpi-pill-label { font-size: 9px; color: var(--color-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-pill-value { font-size: 17px; font-weight: 800; margin-top: 2px; }
+.kpi-pill-value.pos { color: var(--color-success); }
+.kpi-pill-value.neg { color: var(--color-danger); }
+
+/* ============================================
+   TABELA DE PRAZOS
+   ============================================ */
+.table-scroll { overflow-x: auto; }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.data-table th {
+  background: var(--bg-header);
+  color: #FFFFFF;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255,255,255,0.1);
+  font-size: 11px;
+}
+
+.data-table td {
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.data-table tr:nth-child(even) td { background: rgba(37,99,235,0.03); }
+.data-table tr:hover td { background: rgba(37,99,235,0.07); }
+
+/* ============================================
+   ÁREA DE GRÁFICOS
+   ============================================ */
+.chart-container {
+  position: relative;
+  width: 100%;
+}
+
+.chart-container canvas { width: 100% !important; }
+
+/* Alturas padrão por tipo */
+.chart-h300 { height: 300px; }
+.chart-h400 { height: 400px; }
+.chart-h500 { height: 500px; }
+.chart-h600 { height: 600px; }
+
+/* ============================================
+   FILTROS DE GRÁFICO
+   ============================================ */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.filter-select {
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--bg-card);
+  color: var(--color-text);
+  font-size: 12px;
+  font-family: var(--font-main);
+  cursor: pointer;
+  outline: none;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  align-self: center;
+}
+
+/* ============================================
+   ESTADO VAZIO / LOADING
+   ============================================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--color-muted);
+  text-align: center;
+  gap: 12px;
+}
+
+.empty-icon { font-size: 48px; opacity: 0.4; }
+.empty-title { font-size: 15px; font-weight: 700; }
+.empty-sub { font-size: 12px; }
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-page); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+/* ============================================
+   TOAST
+   ============================================ */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  background: #1E293B;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  animation: slideIn 0.3s ease;
+  max-width: 320px;
+}
+
+.toast.success { border-left: 4px solid #10B981; }
+.toast.error   { border-left: 4px solid #EF4444; }
+.toast.info    { border-left: 4px solid #2563EB; }
+
+@keyframes slideIn {
+  from { transform: translateX(60px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* ============================================
+   RESPONSIVIDADE GERAL
+   ============================================ */
+@media (max-width: 600px) {
+  .header-title { font-size: 15px; }
+  .status-group-grid { grid-template-columns: 1fr; }
+  .donut-row { flex-direction: column; align-items: center; }
+}
+</style>
+</head>
+<body data-theme="light">
+
+<!-- ============================================
+     HEADER PRINCIPAL
+     ============================================ -->
+<header class="header">
+  <div class="header-left">
+    <div class="header-title">📊 Relatório Semanal – Sabará Platz</div>
+    <div class="header-subtitle">Dashboard: <span id="dashboard-subtitle">Aguardando carregamento de dados</span></div>
+  </div>
+  <div class="header-right">
+    <!-- Seletor de tema -->
+    <select class="theme-select" onchange="setTheme(this.value)" title="Selecionar Tema">
+      <option value="light">🎨 Tema Padrão</option>
+      <option value="dark">🌙 Dark</option>
+      <option value="red">🔴 Vermelho/P&B</option>
+      <option value="blue">💙 Azul</option>
+    </select>
+    <button class="btn btn-outline btn-sm" onclick="toggleLanguage()" id="lang-btn">🌐 ENGLISH</button>
+    <button class="btn btn-accent btn-sm" onclick="exportPDF()">📄 PDF</button>
+    <button class="btn btn-outline btn-sm" onclick="refreshData()">🔄 Atualizar</button>
+  </div>
+</header>
+
+<!-- ============================================
+     BARRA DE CARGA DE DADOS
+     ============================================ -->
+<div class="upload-bar">
+  <div class="upload-label">📂 Carga de Dados</div>
+  <div class="file-input-wrapper">
+    <button class="btn btn-primary btn-sm">⬆ Importar CSV / XLSX</button>
+    <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(event)" id="file-input">
+  </div>
+  <span id="file-name" style="font-size:12px; color:var(--color-muted);">Nenhum arquivo carregado</span>
+  <div class="last-update">
+    Última atualização: <span id="last-update-time">—</span>
+  </div>
+</div>
+
+<!-- ============================================
+     ABAS DE NAVEGAÇÃO
+     ============================================ -->
+<div class="tabs-wrapper">
+  <button class="tab-btn active" onclick="switchTab(0)" id="tab-btn-0">📋 ABA 01 – Resumo</button>
+  <button class="tab-btn" onclick="switchTab(1)" id="tab-btn-1">📈 ABA 02 – Platz</button>
+  <button class="tab-btn" onclick="switchTab(2)" id="tab-btn-2">📊 ABA 03 – Sabará</button>
+</div>
+
+<!-- ============================================
+     CONTEÚDO DAS ABAS
+     ============================================ -->
+<div class="main-content" id="pdf-content">
+
+  <!-- ==========================================
+       ABA 01 — RESUMO / OVERVIEW
+       ========================================== -->
+  <div class="tab-content active" id="tab-0">
+
+    <!-- Estado inicial / guia -->
+    <div id="empty-state-0" class="empty-state">
+      <div class="empty-icon">📂</div>
+      <div class="empty-title" data-i18n="empty-title">Importe um arquivo para visualizar o dashboard</div>
+      <div class="empty-sub" data-i18n="empty-sub">Formatos aceitos: .csv e .xlsx — Os gráficos serão gerados automaticamente</div>
+    </div>
+
+    <!-- Conteúdo real (oculto até dados serem carregados) -->
+    <div id="content-tab-0" style="display:none;">
+
+      <!-- 1. PRAZOS CONTRATUAIS -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-prazos">1 – Prazos Contratuais</div>
+          <div class="section-badge">TABELA</div>
+        </div>
+        <div class="card">
+          <div class="table-scroll">
+            <table class="data-table" id="tabela-prazos">
+              <thead><tr id="prazos-header"></tr></thead>
+              <tbody id="prazos-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. STATUS FÍSICO -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-fisico">2 – Status Físico</div>
+          <div class="section-badge">PROGRESSO</div>
+        </div>
+        <div class="status-group-grid">
+          <!-- GERAL -->
+          <div class="status-card">
+            <div class="status-card-title">🏗 Geral</div>
+            <div class="donut-row">
+              <div class="donut-wrap">
+                <div class="donut-canvas-wrap">
+                  <canvas id="donut-geral-prev" width="110" height="110"></canvas>
+                  <div class="donut-center-text">
+                    <span class="donut-center-value" id="val-geral-prev">—</span>
+                    <span class="donut-center-sub">PREV</span>
+                  </div>
+                </div>
+                <div class="donut-label">Previsto</div>
+              </div>
+              <div class="donut-wrap">
+                <div class="donut-canvas-wrap">
+                  <canvas id="donut-geral-real" width="110" height="110"></canvas>
+                  <div class="donut-center-text">
+                    <span class="donut-center-value" id="val-geral-real">—</span>
+                    <span class="donut-center-sub">REAL</span>
+                  </div>
+                </div>
+                <div class="donut-label">Realizado</div>
+              </div>
+            </div>
+            <div class="kpi-row">
+              <div class="kpi-pill">
+                <div class="kpi-pill-label">Desvio %</div>
+                <div class="kpi-pill-value" id="kpi-geral-devp">—</div>
+              </div>
+              <div class="kpi-pill">
+                <div class="kpi-pill-label">Desvio dias</div>
+                <div class="kpi-pill-value" id="kpi-geral-devd">—</div>
+              </div>
+            </div>
+          </div>
+          <!-- SABARÁ -->
+          <div class="status-card">
+            <div class="status-card-title">🏢 Sabará</div>
+            <div class="donut-row">
+              <div class="donut-wrap">
+                <div class="donut-canvas-wrap">
+                  <canvas id="donut-sabara-prev" width="110" height="110"></canvas>
+                  <div class="donut-center-text">
+                    <span class="donut-center-value" id="val-sabara-prev">—</span>
+                    <span class="donut-center-sub">PREV</span>
+                  </div>
+                </div>
+                <div class="donut-label">Previsto</div>
+              </div>
+              <div class="donut-wrap">
+                <div class="donut-canvas-wrap">
+                  <canvas id="donut-sabara-real" width="110" height="110"></canvas>
+                  <div class="donut-center-text">
+                    <span class="donut-center-value" id="val-sabara-real">—</span>
+                    <span class="donut-center-sub">REAL</span>
+                  </div>
+                </div>
+                <div class="donut-label">Realizado</div>
+              </div>
+            </div>
+            <div class="kpi-row">
+              <div class="kpi-pill">
+                <div class="kpi-pill-label">Desvio %</div>
+                <div class="kpi-pill-value" id="kpi-sabara-devp">—</div>
+              </div>
+              <div class="kpi-pill">
+                <div class="kpi-pill-label">Desvio dias</div>
+                <div class="kpi-pill-value" id="kpi-sabara-devd">—</div>
+              </div>
+            </div>
+          </div>
+          <!-- PLATZ -->
+          <div class="status-card">
+            <div class="status-card-title">🏬 Platz</div>
+            <div class="donut-row">
+              <div class="donut-wrap">
+                <div class="donut-canvas-wrap">
+                  <canvas id="donut-platz-prev" width="110" height="110"></canvas>
+                  <div class="donut-center-text">
+                    <span class="donut-center-value" id="val-platz-prev">—</span>
+                    <span class="donut-center-sub">PREV</span>
+                  </div>
+                </div>
+                <div class="donut-label">Previsto</div>
+              </div>
+              <div class="donut-wrap">
+                <div class="donut-canvas-wrap">
+                  <canvas id="donut-platz-real" width="110" height="110"></canvas>
+                  <div class="donut-center-text">
+                    <span class="donut-center-value" id="val-platz-real">—</span>
+                    <span class="donut-center-sub">REAL</span>
+                  </div>
+                </div>
+                <div class="donut-label">Realizado</div>
+              </div>
+            </div>
+            <div class="kpi-row">
+              <div class="kpi-pill">
+                <div class="kpi-pill-label">Desvio %</div>
+                <div class="kpi-pill-value" id="kpi-platz-devp">—</div>
+              </div>
+              <div class="kpi-pill">
+                <div class="kpi-pill-label">Desvio dias</div>
+                <div class="kpi-pill-value" id="kpi-platz-devd">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. STATUS FINANCEIRO -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-financeiro">3 – Status Financeiro</div>
+          <div class="section-badge">GRÁFICO</div>
+        </div>
+        <div class="card">
+          <div class="chart-container chart-h500">
+            <canvas id="chart-financeiro"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. EFETIVO DE OBRA -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-efetivo">4 – Efetivo de Obra</div>
+          <div class="section-badge">GRÁFICO</div>
+        </div>
+        <div class="card">
+          <div class="chart-container chart-h300">
+            <canvas id="chart-efetivo"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content-tab-0 -->
+  </div><!-- /tab-0 -->
+
+  <!-- ==========================================
+       ABA 02 — PLATZ
+       ========================================== -->
+  <div class="tab-content" id="tab-1">
+
+    <div id="empty-state-1" class="empty-state">
+      <div class="empty-icon">📂</div>
+      <div class="empty-title" data-i18n="empty-title">Importe um arquivo para visualizar o dashboard</div>
+      <div class="empty-sub" data-i18n="empty-sub">Formatos aceitos: .csv e .xlsx</div>
+    </div>
+
+    <div id="content-tab-1" style="display:none;">
+
+      <!-- 1. EVOLUÇÃO SEMANAL -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-semanal-s">1 – Evolução Semanal (Platz)</div>
+          <div class="section-badge">COMBINAÇÃO</div>
+        </div>
+        <div class="card">
+          <div class="chart-container chart-h400">
+            <canvas id="chart-semanal-sabara"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. EVOLUÇÃO MENSAL -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-mensal-s">2 – Evolução Mensal (Platz)</div>
+          <div class="section-badge">COMBINAÇÃO</div>
+        </div>
+        <div class="card">
+          <div style="overflow-x:auto;">
+            <div class="chart-container chart-h400" style="min-width:900px;">
+              <canvas id="chart-mensal-sabara"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. EVOLUÇÃO POR PAVIMENTO -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-pav-s">3 – Evolução por Pavimento (Platz)</div>
+          <div class="section-badge">BARRAS</div>
+        </div>
+        <div class="card">
+          <div class="chart-container chart-h600">
+            <canvas id="chart-pavimento-sabara"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /tab-1 -->
+
+  <!-- ==========================================
+       ABA 03 — SABARÁ
+       ========================================== -->
+  <div class="tab-content" id="tab-2">
+
+    <div id="empty-state-2" class="empty-state">
+      <div class="empty-icon">📂</div>
+      <div class="empty-title" data-i18n="empty-title">Importe um arquivo para visualizar o dashboard</div>
+      <div class="empty-sub" data-i18n="empty-sub">Formatos aceitos: .csv e .xlsx</div>
+    </div>
+
+    <div id="content-tab-2" style="display:none;">
+
+      <!-- 1. EVOLUÇÃO SEMANAL -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-semanal-p">1 – Evolução Semanal (Sabará)</div>
+          <div class="section-badge">COMBINAÇÃO</div>
+        </div>
+        <div class="card">
+          <div class="chart-container chart-h400">
+            <canvas id="chart-semanal-platz"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. EVOLUÇÃO MENSAL -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-mensal-p">2 – Evolução Mensal (Sabará)</div>
+          <div class="section-badge">COMBINAÇÃO</div>
+        </div>
+        <div class="card">
+          <div style="overflow-x:auto;">
+            <div class="chart-container chart-h400" style="min-width:900px;">
+              <canvas id="chart-mensal-platz"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. EVOLUÇÃO POR PAVIMENTO -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" data-i18n="sec-pav-p">3 – Evolução por Pavimento (Sabará)</div>
+          <div class="section-badge">BARRAS</div>
+        </div>
+        <div class="card">
+          <div class="chart-container chart-h600">
+            <canvas id="chart-pavimento-platz"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /tab-2 -->
+
+</div><!-- /main-content -->
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ============================================
+     JAVASCRIPT PRINCIPAL
+     ============================================ -->
+<script>
+/* ================================================
+   ESTADO GLOBAL DO DASHBOARD
+   ================================================ */
+const STATE = {
+  sheets: {},          // dados por aba (sheet name -> array of rows)
+  sheetNames: [],      // nomes das abas originais
+  merges: {},          // informações de mesclagem por aba (nome -> array de {s,e})
+  fileName: '',        // nome do arquivo carregado
+  language: 'pt',     // idioma ativo
+  chartInstances: {},  // instâncias Chart.js ativas (para destruir antes de recriar)
+  currentTab: 0,       // aba ativa
+};
+
+/* ================================================
+   PALETA DE CORES PARA GRÁFICOS
+   (extraída das variáveis CSS para consistência com tema)
+   ================================================ */
+function getChartColors() {
+  const style = getComputedStyle(document.documentElement);
+  return [
+    style.getPropertyValue('--chart-1').trim() || '#2563EB',
+    style.getPropertyValue('--chart-2').trim() || '#F59E0B',
+    style.getPropertyValue('--chart-3').trim() || '#10B981',
+    style.getPropertyValue('--chart-4').trim() || '#EF4444',
+    style.getPropertyValue('--chart-5').trim() || '#8B5CF6',
+    style.getPropertyValue('--chart-6').trim() || '#06B6D4',
+  ];
+}
+
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16);
+  const g = parseInt(h.substring(2,4),16);
+  const b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/* ================================================
+   TROCA DE TEMA
+   ================================================ */
+function setTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  // Recriar gráficos para atualizar cores
+  setTimeout(() => { if (STATE.fileName) renderAllCharts(); }, 100);
+}
+
+/* ================================================
+   TROCA DE ABA
+   ================================================ */
+function switchTab(idx) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${idx}`).classList.add('active');
+  document.getElementById(`tab-btn-${idx}`).classList.add('active');
+  STATE.currentTab = idx;
+}
+
+/* ================================================
+   UPLOAD DE ARQUIVO (CSV ou XLSX)
+   ================================================ */
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  STATE.fileName = file.name;
+  document.getElementById('file-name').textContent = `📄 ${file.name}`;
+  document.getElementById('dashboard-subtitle').textContent = file.name.replace(/\.(csv|xlsx|xls)$/i,'').toUpperCase();
+
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'csv') {
+    readCSV(file);
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    readXLSX(file);
+  } else {
+    showToast('Formato não suportado. Use CSV ou XLSX.', 'error');
+  }
+}
+
+/* ================================================
+   LEITURA DE CSV
+   ================================================ */
+function readCSV(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const text = e.target.result;
+      const rows = parseCSV(text);
+      if (!rows || rows.length < 2) throw new Error('CSV vazio ou inválido');
+
+      // CSV → trata como uma única aba
+      STATE.sheets = { 'Planilha1': rows };
+      STATE.sheetNames = ['Planilha1'];
+      updateTabNames(['Planilha1']);
+      updateTimestamp();
+      renderAllCharts();
+      showToast(`Arquivo carregado com sucesso! (${rows.length - 1} linhas)`, 'success');
+    } catch(err) {
+      showToast('Erro ao ler CSV: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  return lines.map(line => {
+    // Suporte a campos com aspas
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if ((c === ',' || c === ';') && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+/* ================================================
+   LEITURA DE XLSX
+   ================================================ */
+function readXLSX(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array', cellDates: true, cellText: false });
+
+      STATE.sheets = {};
+      STATE.sheetNames = wb.SheetNames;
+      STATE.merges = {};   // armazena merges por aba para renderizar células mescladas
+
+      wb.SheetNames.forEach(name => {
+        // Lê como array de arrays; SheetJS preenche células mescladas com o valor da célula-mestre
+        const ws = wb.Sheets[name];
+        const raw = XLSX.utils.sheet_to_json(ws, {
+          header: 1,
+          defval: '',
+          raw: false,         // converte datas para string
+          dateNF: 'dd/mm/yyyy'
+        });
+        STATE.sheets[name] = raw;
+
+        // Captura informações de mesclagem (array de objetos {s:{r,c}, e:{r,c}})
+        STATE.merges[name] = ws['!merges'] || [];
+      });
+
+      updateTabNames(wb.SheetNames);
+      updateTimestamp();
+      renderAllCharts();
+      showToast(`Arquivo XLSX carregado! ${wb.SheetNames.length} aba(s) encontrada(s).`, 'success');
+    } catch(err) {
+      showToast('Erro ao ler XLSX: ' + err.message, 'error');
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ================================================
+   ATUALIZA NOMES DAS ABAS NA INTERFACE
+   ================================================ */
+function updateTabNames(names) {
+  const labels = [
+    `📋 ${names[0] || 'ABA 01'}`,
+    `📈 ${names[1] || 'ABA 02'}`,
+    `📊 ${names[2] || 'ABA 03'}`,
+  ];
+  labels.forEach((label, i) => {
+    const btn = document.getElementById(`tab-btn-${i}`);
+    if (btn) btn.textContent = label;
+  });
+}
+
+/* ================================================
+   TIMESTAMP
+   ================================================ */
+function updateTimestamp() {
+  const now = new Date();
+  document.getElementById('last-update-time').textContent =
+    now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
+}
+
+/* ================================================
+   BOTÃO ATUALIZAR (anti-cache via timestamp)
+   ================================================ */
+function refreshData() {
+  const input = document.getElementById('file-input');
+  if (input.files && input.files[0]) {
+    handleFileUpload({ target: input });
+  } else {
+    showToast('Nenhum arquivo carregado para atualizar.', 'info');
+  }
+}
+
+/* ================================================
+   RENDERIZAÇÃO DE TODOS OS GRÁFICOS
+   ================================================ */
+function renderAllCharts() {
+  const names = STATE.sheetNames;
+
+  // Mostra conteúdo e esconde empty states
+  [0, 1, 2].forEach(i => {
+    const empty = document.getElementById(`empty-state-${i}`);
+    const content = document.getElementById(`content-tab-${i}`);
+    if (empty) empty.style.display = 'none';
+    if (content) content.style.display = 'block';
+  });
+
+  // ABA 01 – usa primeira aba do arquivo
+  if (names[0]) {
+    const sheet0 = STATE.sheets[names[0]];
+    renderAba01(sheet0);
+  }
+
+  // ABA 02 – usa segunda aba
+  if (names[1]) {
+    const sheet1 = STATE.sheets[names[1]];
+    renderAba02(sheet1);
+  }
+
+  // ABA 03 – usa terceira aba
+  if (names[2]) {
+    const sheet2 = STATE.sheets[names[2]];
+    renderAba03(sheet2);
+  }
+}
+
+/* ================================================
+   HELPERS PARA LEITURA DE CÉLULAS
+   ================================================ */
+// Retorna valor de célula [row][col] de um sheet (0-indexed)
+function cell(sheet, row, col) {
+  if (!sheet || !sheet[row]) return '';
+  return sheet[row][col] ?? '';
+}
+
+// Converte para número, retorna 0 se inválido
+function toNum(val) {
+  if (val === null || val === undefined || val === '') return 0;
+  const s = String(val).replace(',', '.').replace('%', '').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+// Verifica se linha está vazia
+function isEmptyRow(row) {
+  return !row || row.every(c => c === '' || c === null || c === undefined);
+}
+
+// Formata como % string
+function fmtPct(val) {
+  const n = toNum(val);
+  return n.toFixed(1) + '%';
+}
+
+// Formata moeda BRL
+function fmtBRL(val) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(toNum(val));
+}
+
+/* ================================================
+   HELPER: formatMesAno
+   Converte qualquer representação de mês/ano para "mmm/aa"
+   Suporta: Date do JS, serial Excel (número), string "mm/yyyy",
+            string "Jan/2025", string "2025-01", etc.
+   ================================================ */
+function formatMesAno(val) {
+  if (!val || String(val).trim() === '') return '';
+
+  const mesesPt = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const mesesEn = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const s = String(val).trim();
+
+  // 1. Número serial do Excel (ex: 45292)
+  const num = parseFloat(s.replace(',','.'));
+  if (!isNaN(num) && num > 1 && num < 100000 && s === String(Math.round(num))) {
+    // Converte serial Excel para Date (base 1900, com bug do ano bissexto do Lotus)
+    const d = new Date(Math.round((num - 25569) * 86400 * 1000));
+    if (!isNaN(d.getTime())) {
+      return mesesPt[d.getUTCMonth()] + '/' + String(d.getUTCFullYear()).slice(-2);
+    }
+  }
+
+  // 2. Date object serializado pelo SheetJS: "mm/dd/yyyy" ou "dd/mm/yyyy"
+  const matchDMY = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (matchDMY) {
+    const mes = parseInt(matchDMY[2]) - 1;  // assume dd/mm/yyyy
+    const ano = matchDMY[3];
+    if (mes >= 0 && mes < 12) return mesesPt[mes] + '/' + ano.slice(-2);
+  }
+
+  // 3. "yyyy-mm" ou "mm-yyyy"
+  const matchYM = s.match(/^(\d{4})-(\d{1,2})$/);
+  if (matchYM) {
+    const mes = parseInt(matchYM[2]) - 1;
+    const ano = matchYM[1];
+    if (mes >= 0 && mes < 12) return mesesPt[mes] + '/' + ano.slice(-2);
+  }
+  const matchMY = s.match(/^(\d{1,2})-(\d{4})$/);
+  if (matchMY) {
+    const mes = parseInt(matchMY[1]) - 1;
+    const ano = matchMY[2];
+    if (mes >= 0 && mes < 12) return mesesPt[mes] + '/' + ano.slice(-2);
+  }
+
+  // 4. "mm/yyyy" ou "m/yyyy"
+  const matchMSlY = s.match(/^(\d{1,2})\/(\d{4})$/);
+  if (matchMSlY) {
+    const mes = parseInt(matchMSlY[1]) - 1;
+    const ano = matchMSlY[2];
+    if (mes >= 0 && mes < 12) return mesesPt[mes] + '/' + ano.slice(-2);
+  }
+
+  // 5. "Jan/2025", "Janeiro/2025", "January/2025" etc.
+  const matchTextY = s.match(/^([a-záêçõàü]+)[\/\-\s](\d{2,4})$/i);
+  if (matchTextY) {
+    const mesStr = matchTextY[1].toLowerCase().slice(0, 3);
+    const ano = matchTextY[2].length === 2 ? matchTextY[2] : matchTextY[2].slice(-2);
+    const idxPt = mesesPt.indexOf(mesStr);
+    const idxEn = mesesEn.indexOf(mesStr);
+    if (idxPt >= 0) return mesesPt[idxPt] + '/' + ano;
+    if (idxEn >= 0) return mesesPt[idxEn] + '/' + ano;
+  }
+
+  // 6. Já está no formato "mmm/aa" → retorna como está
+  const matchShort = s.match(/^([a-záêçõàü]{3})\/(\d{2})$/i);
+  if (matchShort) return s.toLowerCase();
+
+  // 7. Fallback: retorna o valor original truncado se for muito longo
+  return s.length > 8 ? s.slice(0, 8) : s;
+}
+
+/* ================================================
+   ABA 01 — PRAZOS CONTRATUAIS (linhas 2-10, colunas A-G)
+   Índice 0-based: linhas 1-9, colunas 0-6
+   ================================================ */
+function renderAba01(sheet) {
+  if (!sheet) return;
+
+  // --- TABELA PRAZOS (linhas 1 a 9, colunas 0 a 6) ---
+  renderTabelaPrazos(sheet);
+
+  // --- STATUS FÍSICO ---
+  // Geral: A15=sheet[14][0], B15=sheet[14][1], D15=sheet[14][3]
+  const geralPrev = toNum(cell(sheet, 14, 0));
+  const geralReal = toNum(cell(sheet, 14, 1));
+  const geralDevP = geralReal - geralPrev;
+  const geralDevD = toNum(cell(sheet, 14, 3));
+
+  renderDonut('donut-geral-prev', geralPrev, 'val-geral-prev');
+  renderDonut('donut-geral-real', geralReal, 'val-geral-real');
+  setKpiPill('kpi-geral-devp', geralDevP.toFixed(1) + '%', geralDevP);
+  setKpiPill('kpi-geral-devd', geralDevD + 'd', geralDevD);
+
+  // Sabará: A18, B18, D18
+  const sabaraPrev = toNum(cell(sheet, 17, 0));
+  const sabaraReal = toNum(cell(sheet, 17, 1));
+  const sabaraDevP = sabaraReal - sabaraPrev;
+  const sabaraDevD = toNum(cell(sheet, 17, 3));
+
+  renderDonut('donut-sabara-prev', sabaraPrev, 'val-sabara-prev');
+  renderDonut('donut-sabara-real', sabaraReal, 'val-sabara-real');
+  setKpiPill('kpi-sabara-devp', sabaraDevP.toFixed(1) + '%', sabaraDevP);
+  setKpiPill('kpi-sabara-devd', sabaraDevD + 'd', sabaraDevD);
+
+  // Platz: A21, B21, D21
+  const platzPrev = toNum(cell(sheet, 20, 0));
+  const platzReal = toNum(cell(sheet, 20, 1));
+  const platzDevP = platzReal - platzPrev;
+  const platzDevD = toNum(cell(sheet, 20, 3));
+
+  renderDonut('donut-platz-prev', platzPrev, 'val-platz-prev');
+  renderDonut('donut-platz-real', platzReal, 'val-platz-real');
+  setKpiPill('kpi-platz-devp', platzDevP.toFixed(1) + '%', platzDevP);
+  setKpiPill('kpi-platz-devd', platzDevD + 'd', platzDevD);
+
+  // --- STATUS FINANCEIRO (linhas 24-28 = índices 23-27, colunas A-D = 0-3) ---
+  renderStatusFinanceiro(sheet);
+
+  // --- EFETIVO DE OBRA (linhas 31-33 = índices 30-32, colunas A-B = 0-1) ---
+  renderEfetivo(sheet);
+}
+
+/* ================================================
+   TABELA PRAZOS CONTRATUAIS — com mesclagem de células
+   Lê STATE.merges para aplicar colspan/rowspan corretos
+   ================================================ */
+function renderTabelaPrazos(sheet) {
+  const header = document.getElementById('prazos-header');
+  const body   = document.getElementById('prazos-body');
+  header.innerHTML = '';
+  body.innerHTML   = '';
+
+  // Intervalo de linhas e colunas (0-based): linhas 1-9, colunas 0-6
+  const ROW_START = 1, ROW_END = 9, COL_START = 0, COL_END = 6;
+
+  // Obtém merges da primeira aba
+  const sheetName = STATE.sheetNames[0];
+  const rawMerges = (sheetName && STATE.merges[sheetName]) || [];
+
+  // Constrói mapa de células a ignorar (já cobertas por um merge) e spans a aplicar
+  // Chave: "r_c" → { colspan, rowspan } para a célula-mestre
+  // Células submersas ficam marcadas como skip=true
+  const spanMap  = {};   // "r_c" → {colspan, rowspan}
+  const skipSet  = new Set(); // "r_c" → deve ser omitida
+
+  rawMerges.forEach(m => {
+    const { s, e } = m;
+    // Somente merges dentro do intervalo de interesse
+    if (s.r > ROW_END || e.r < ROW_START || s.c > COL_END || e.c < COL_START) return;
+
+    const colspan = (e.c - s.c) + 1;
+    const rowspan = (e.r - s.r) + 1;
+    spanMap[`${s.r}_${s.c}`] = { colspan, rowspan };
+
+    // Marca todas as células cobertas exceto a mestre como skip
+    for (let r = s.r; r <= e.r; r++) {
+      for (let c = s.c; c <= e.c; c++) {
+        if (r === s.r && c === s.c) continue; // a mestre não é skip
+        skipSet.add(`${r}_${c}`);
+      }
+    }
+  });
+
+  // Renderiza linha a linha
+  // Detecta índice da coluna "Data Atualizada" no cabeçalho (ROW_START)
+  // para aplicar negrito em todas as células daquela coluna nas linhas de dados
+  const headerRowData = sheet[ROW_START] || [];
+  let colDataAtualizada = -1;
+
+  // Ajuste 1: Detecta colunas que devem ser centralizadas:
+  // DATA, DIAS DE CHUVA, DATA ATUALIZADA, PRAZO (MESES)
+  const colsCentralizar = new Set();
+  for (let c = COL_START; c <= COL_END; c++) {
+    const val = String(headerRowData[c] || '').toLowerCase().trim();
+    if (
+      val.includes('data')       ||   // DATA e DATA ATUALIZADA
+      val.includes('dias')       ||   // DIAS DE CHUVA
+      val.includes('chuva')      ||   // DIAS DE CHUVA (célula mesclada)
+      val.includes('prazo')      ||   // PRAZO (MESES)
+      val.includes('mes')        ||   // MESES
+      val.includes('mês')
+    ) {
+      colsCentralizar.add(c);
+    }
+    if (val.includes('atualiz') || val.includes('atual')) {
+      colDataAtualizada = c;
+    }
+  }
+
+  for (let r = ROW_START; r <= ROW_END; r++) {
+    const row = sheet[r] || [];
+    if (isEmptyRow(row)) continue;
+
+    // Primeira linha de dados vira cabeçalho (thead); demais vão para tbody
+    const isHeaderRow = (r === ROW_START);
+    const tr = document.createElement('tr');
+
+    for (let c = COL_START; c <= COL_END; c++) {
+      const key = `${r}_${c}`;
+
+      // Célula coberta por mesclagem → pular
+      if (skipSet.has(key)) continue;
+
+      const cell = isHeaderRow ? document.createElement('th') : document.createElement('td');
+      cell.textContent = String(row[c] ?? '');
+
+      // Aplica span se esta célula é mestre de mesclagem
+      if (spanMap[key]) {
+        const { colspan, rowspan } = spanMap[key];
+        if (colspan > 1) cell.colSpan = colspan;
+        if (rowspan > 1) cell.rowSpan = rowspan;
+        cell.style.fontWeight = '700';
+      }
+
+      // Ajuste 1: centraliza colunas DATA, DIAS DE CHUVA, DATA ATUALIZADA, PRAZO (MESES)
+      if (colsCentralizar.has(c)) {
+        cell.style.textAlign = 'center';
+      }
+
+      // Negrito e cor primária na coluna "Data Atualizada" (linhas de dados)
+      if (!isHeaderRow && c === colDataAtualizada) {
+        cell.style.fontWeight = '700';
+        cell.style.color = 'var(--color-primary)';
+      }
+
+      if (isHeaderRow) {
+        header.appendChild(cell);
+      } else {
+        tr.appendChild(cell);
+      }
+    }
+
+    if (!isHeaderRow) body.appendChild(tr);
+  }
+}
+
+/* ================================================
+   GRÁFICO DE ROSCA
+   ================================================ */
+function renderDonut(canvasId, pct, valElId) {
+  const colors = getChartColors();
+  destroyChart(canvasId);
+
+  const pctSafe = Math.min(Math.max(toNum(pct), 0), 100);
+  document.getElementById(valElId).textContent = pctSafe.toFixed(1) + '%';
+
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  STATE.chartInstances[canvasId] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [pctSafe, 100 - pctSafe],
+        backgroundColor: [colors[0], getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim() || '#E2E8F0'],
+        borderWidth: 0,
+        hoverOffset: 0,
+      }]
+    },
+    options: {
+      cutout: '70%',
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      animation: { animateRotate: true, duration: 800 },
+    }
+  });
+}
+
+/* ================================================
+   KPI PILL — positivo/negativo
+   ================================================ */
+function setKpiPill(elId, text, numVal) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'kpi-pill-value ' + (numVal >= 0 ? 'pos' : 'neg');
+}
+
+/* ================================================
+   STATUS FINANCEIRO — barras horizontais agrupadas
+   Linhas 24-28 (índices 23-27), colunas A-D (0-3)
+   ================================================ */
+function renderStatusFinanceiro(sheet) {
+  destroyChart('chart-financeiro');
+  const colors = getChartColors();
+
+  // Lê as 4 linhas de dados (após cabeçalho na 23)
+  // Estrutura esperada: col A = rótulo, B = Geral, C = Sabará, D = Platz
+  const labels = ['Geral', 'Sabará', 'Platz'];
+
+  // PMG Reajustado, Faturado, Contratado, A Contratar
+  const groups = [];
+  for (let r = 24; r <= 27; r++) {
+    const row = sheet[r] || [];
+    groups.push({
+      label: row[0] || `Grupo ${r - 23}`,
+      geral:  toNum(row[1]),
+      sabara: toNum(row[2]),
+      platz:  toNum(row[3]),
+    });
+  }
+
+  if (groups.length === 0) return;
+
+  // Monta datasets — um por linha de grupo (PMG, Faturado, Contratado, A Contratar)
+  const datasets = groups.map((g, i) => ({
+    label: g.label,
+    data: [g.geral, g.sabara, g.platz],
+    backgroundColor: hexToRgba(colors[i % colors.length], 0.85),
+    borderColor: colors[i % colors.length],
+    borderWidth: 1.5,
+    borderRadius: 4,
+  }));
+
+  const ctx = document.getElementById('chart-financeiro');
+  if (!ctx) return;
+
+  // Plugin inline para desenhar rótulos dentro/fora das barras horizontais
+  const barLabelPlugin = {
+    id: 'barLabelsFinanceiro',
+    afterDatasetsDraw(chart) {
+      const { ctx: c, scales: { x } } = chart;
+      chart.data.datasets.forEach((dataset, dIdx) => {
+        const meta = chart.getDatasetMeta(dIdx);
+        meta.data.forEach((bar, i) => {
+          const val = dataset.data[i];
+          if (!val) return;
+          const text = fmtBRL(val);
+          c.save();
+          c.font = 'bold 10px Segoe UI, sans-serif';
+          c.fillStyle = '#FFFFFF';
+          c.textAlign = 'center';
+          c.textBaseline = 'middle';
+          const barW = bar.width || 0;
+          const textW = c.measureText(text).width;
+          // Se a barra for larga o suficiente, escreve dentro; senão fora
+          if (barW > textW + 8) {
+            c.fillText(text, bar.x - barW / 2 + textW / 2 + 4, bar.y);
+          } else {
+            c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
+            c.textAlign = 'left';
+            c.fillText(text, bar.x + 4, bar.y);
+          }
+          c.restore();
+        });
+      });
+    }
+  };
+
+  STATE.chartInstances['chart-financeiro'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    plugins: [barLabelPlugin],
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim(), font: { weight: '600', size: 11 } } },
+        tooltip: { callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${fmtBRL(ctx.raw)}`
+        }},
+        datalabels: { display: false }
+      },
+      scales: {
+        x: {
+          grid: { color: hexToRgba(getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim() || '#E2E8F0', 0.5) },
+          ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim(), callback: v => fmtBRL(v) }
+        },
+        y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim(), font: { weight: '700' } } }
+      }
+    }
+  });
+}
+
+/* ================================================
+   EFETIVO DE OBRA — barras verticais
+   Linhas 31-33 (índices 30-32), colunas A-B (0-1)
+   ================================================ */
+function renderEfetivo(sheet) {
+  destroyChart('chart-efetivo');
+  const colors = getChartColors();
+
+  const labels = [];
+  const values = [];
+
+  for (let r = 30; r <= 32; r++) {
+    const row = sheet[r] || [];
+    if (isEmptyRow(row)) continue;
+    labels.push(String(row[0] || `Item ${r - 29}`));
+    values.push(toNum(row[1]));
+  }
+
+  const ctx = document.getElementById('chart-efetivo');
+  if (!ctx) return;
+
+  // Plugin inline: rótulo no topo de cada coluna (barra vertical)
+  const efetivoLabelPlugin = {
+    id: 'efetivoLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx: c, scales: { y } } = chart;
+      chart.data.datasets.forEach((dataset, dIdx) => {
+        const meta = chart.getDatasetMeta(dIdx);
+        meta.data.forEach((bar, i) => {
+          const val = dataset.data[i];
+          if (val === null || val === undefined || val === 0) return;
+          const text = String(val);
+          c.save();
+          c.font = 'bold 12px Segoe UI, sans-serif';
+          c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
+          c.textAlign = 'center';
+          c.textBaseline = 'bottom';
+          // Posiciona o rótulo ligeiramente acima do topo da barra
+          c.fillText(text, bar.x, bar.y - 4);
+          c.restore();
+        });
+      });
+    }
+  };
+
+  STATE.chartInstances['chart-efetivo'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Efetivo',
+        data: values,
+        backgroundColor: colors.slice(0, values.length).map(c => hexToRgba(c, 0.85)),
+        borderColor: colors.slice(0, values.length),
+        borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    plugins: [efetivoLabelPlugin],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}` } }
+      },
+      scales: {
+        x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim(), font: { weight: '700' } } },
+        y: {
+          ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim() },
+          beginAtZero: true,
+          // Dá espaço no topo para o rótulo não ser cortado
+          grace: '10%'
+        }
+      }
+    }
+  });
+}
+
+/* ================================================
+   ABA 02 — PLATZ (2ª aba do arquivo)
+   ================================================ */
+function renderAba02(sheet) {
+  if (!sheet) return;
+
+  // 1. EVOLUÇÃO SEMANAL (linhas 2-6 = índices 1-5, colunas A-E = 0-4)
+  //    Escala padrão: primário 60-90 (step 5), secundário 0-3 (step 0.5)
+  renderEvolucaoSemanal(sheet, 'chart-semanal-sabara', 1, 5, 0, 4, 60, 90, 5, 0, 3, 0.5);
+
+  // 2. EVOLUÇÃO MENSAL (linhas 9-13 = índices 8-12, colunas A-AL = 0-37)
+  renderEvolucaoMensal(sheet, 'chart-mensal-sabara', 8, 12, 0, 37);
+
+  // 3. EVOLUÇÃO POR PAVIMENTO (linhas 17-55 = índices 16-54, colunas A-C = 0-2)
+  renderEvolucaoPavimento(sheet, 'chart-pavimento-sabara', 16, 54);
+}
+
+/* ================================================
+   ABA 03 — SABARÁ (3ª aba do arquivo)
+   ================================================ */
+function renderAba03(sheet) {
+  if (!sheet) return;
+
+  // 1. EVOLUÇÃO SEMANAL — escala específica conforme ajuste 4:
+  //    Eixo primário (acumulado): 40 a 60, step 5
+  //    Eixo secundário (semanal): 0 a 2, step 0.5
+  renderEvolucaoSemanal(sheet, 'chart-semanal-platz', 1, 5, 0, 4, 40, 60, 5, 0, 2, 0.5);
+
+  // 2. EVOLUÇÃO MENSAL (colunas A-AM = 0-38)
+  renderEvolucaoMensal(sheet, 'chart-mensal-platz', 8, 12, 0, 38);
+
+  // 3. EVOLUÇÃO POR PAVIMENTO (linhas 17-43 = índices 16-42)
+  renderEvolucaoPavimento(sheet, 'chart-pavimento-platz', 16, 42);
+}
+
+/* ================================================
+   GRÁFICO COMBINADO — EVOLUÇÃO SEMANAL
+   Parâmetros de escala configuráveis por chamada:
+     y1Min/y1Max/y1Step → eixo primário (acumulado, linhas)
+     y2Min/y2Max/y2Step → eixo secundário (semanal, barras)
+   Ajuste anterior: células sem valor → null (não plota ponto/barra)
+   ================================================ */
+function renderEvolucaoSemanal(
+  sheet, canvasId, rStart, rEnd, cStart, cEnd,
+  y1Min = 60, y1Max = 90, y1Step = 5,
+  y2Min = 0,  y2Max = 3,  y2Step = 0.5
+) {
+  destroyChart(canvasId);
+  const colors = getChartColors();
+  const textColor   = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
+  const mutedColor  = getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim();
+  const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim();
+
+  // Linha de datas = rStart
+  const headerRow = sheet[rStart] || [];
+  const labels = [];
+  for (let c = cStart + 1; c <= cEnd; c++) {
+    const v = headerRow[c];
+    labels.push(v !== '' && v !== undefined ? String(v) : '');
+  }
+
+  // Retorna array onde célula vazia vira null (não é plotada)
+  function getRowDataNullable(rowIdx) {
+    const row = sheet[rowIdx] || [];
+    const data = [];
+    for (let c = cStart + 1; c <= cEnd; c++) {
+      const raw = row[c];
+      const isEmpty = raw === '' || raw === null || raw === undefined;
+      data.push(isEmpty ? null : toNum(raw));
+    }
+    return data;
+  }
+
+  const semPrev  = getRowDataNullable(rStart + 1);
+  const semReal  = getRowDataNullable(rStart + 2);
+  const acumPrev = getRowDataNullable(rStart + 3);
+  const acumReal = getRowDataNullable(rStart + 4);
+
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  STATE.chartInstances[canvasId] = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Semanal Previsto',
+          data: semPrev,
+          backgroundColor: hexToRgba(colors[0], 0.7),
+          borderColor: colors[0],
+          borderWidth: 1.5,
+          borderRadius: 4,
+          yAxisID: 'y2',
+          order: 2,
+          skipNull: true,
+        },
+        {
+          type: 'bar',
+          label: 'Semanal Realizado',
+          data: semReal,
+          backgroundColor: hexToRgba(colors[1], 0.7),
+          borderColor: colors[1],
+          borderWidth: 1.5,
+          borderRadius: 4,
+          yAxisID: 'y2',
+          order: 2,
+          skipNull: true,
+        },
+        {
+          type: 'line',
+          label: 'Acumulado Previsto',
+          data: acumPrev,
+          borderColor: colors[2],
+          backgroundColor: hexToRgba(colors[2], 0.1),
+          borderWidth: 2.5,
+          pointRadius: 4,
+          tension: 0.3,
+          yAxisID: 'y1',
+          fill: false,
+          order: 1,
+          spanGaps: false,   // não conecta pontos nulos
+        },
+        {
+          type: 'line',
+          label: 'Acumulado Realizado',
+          data: acumReal,
+          borderColor: colors[3],
+          backgroundColor: hexToRgba(colors[3], 0.1),
+          borderWidth: 2.5,
+          pointRadius: 4,
+          tension: 0.3,
+          yAxisID: 'y1',
+          fill: false,
+          order: 1,
+          spanGaps: false,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { color: textColor, font: { weight: '600', size: 11 } } },
+        tooltip: { mode: 'index', intersect: false },
+      },
+      scales: {
+        x: {
+          grid: { color: hexToRgba(borderColor, 0.5) },
+          ticks: { color: textColor, font: { weight: '600' }, maxRotation: 45 }
+        },
+        y1: {
+          type: 'linear',
+          position: 'left',
+          min: y1Min, max: y1Max,
+          grid: { color: hexToRgba(borderColor, 0.5) },
+          ticks: { color: textColor, stepSize: y1Step, callback: v => v + '%' },
+          title: { display: true, text: 'Acumulado (%)', color: mutedColor }
+        },
+        y2: {
+          type: 'linear',
+          position: 'right',
+          min: y2Min, max: y2Max,
+          grid: { drawOnChartArea: false },
+          ticks: { color: mutedColor, stepSize: y2Step, callback: v => v + '%' },
+          title: { display: true, text: 'Semanal (%)', color: mutedColor }
+        }
+      }
+    }
+  });
+}
+
+/* ================================================
+   GRÁFICO COMBINADO — EVOLUÇÃO MENSAL
+   Ajuste 4: células sem valor → null (não plota ponto/barra)
+   Ajuste 3: eixo X exibe apenas MÊS/ANO (ex: jan/25)
+   ================================================ */
+function renderEvolucaoMensal(sheet, canvasId, rStart, rEnd, cStart, cEnd) {
+  destroyChart(canvasId);
+  const colors = getChartColors();
+  const textColor   = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
+  const mutedColor  = getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim();
+  const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim();
+
+  const headerRow = sheet[rStart] || [];
+  const labels = [];
+  for (let c = cStart + 1; c <= cEnd; c++) {
+    const v = headerRow[c];
+    // Normaliza cada label para MÊS/ANO usando helper formatMesAno
+    labels.push(v !== '' && v !== undefined ? formatMesAno(String(v)) : '');
+  }
+
+  // Retorna null para células vazias
+  function getRowDataNullable(rowIdx) {
+    const row = sheet[rowIdx] || [];
+    const data = [];
+    for (let c = cStart + 1; c <= cEnd; c++) {
+      const raw = row[c];
+      const isEmpty = raw === '' || raw === null || raw === undefined;
+      data.push(isEmpty ? null : toNum(raw));
+    }
+    return data;
+  }
+
+  const mensPrev = getRowDataNullable(rStart + 1);
+  const mensReal = getRowDataNullable(rStart + 2);
+  const acumPrev = getRowDataNullable(rStart + 3);
+  const acumReal = getRowDataNullable(rStart + 4);
+
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  STATE.chartInstances[canvasId] = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar', label: 'Mensal Previsto', data: mensPrev,
+          backgroundColor: hexToRgba(colors[0], 0.7), borderColor: colors[0],
+          borderWidth: 1.5, borderRadius: 3, yAxisID: 'y2', order: 2, skipNull: true,
+        },
+        {
+          type: 'bar', label: 'Mensal Realizado', data: mensReal,
+          backgroundColor: hexToRgba(colors[1], 0.7), borderColor: colors[1],
+          borderWidth: 1.5, borderRadius: 3, yAxisID: 'y2', order: 2, skipNull: true,
+        },
+        {
+          type: 'line', label: 'Acumulado Previsto', data: acumPrev,
+          borderColor: colors[2], borderWidth: 2.5, pointRadius: 3, tension: 0.3,
+          yAxisID: 'y1', fill: false, order: 1, spanGaps: false,
+        },
+        {
+          type: 'line', label: 'Acumulado Realizado', data: acumReal,
+          borderColor: colors[3], borderWidth: 2.5, pointRadius: 3, tension: 0.3,
+          yAxisID: 'y1', fill: false, order: 1, spanGaps: false,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { color: textColor, font: { weight: '600', size: 11 } } },
+        tooltip: { mode: 'index', intersect: false },
+      },
+      scales: {
+        x: {
+          grid: { color: hexToRgba(borderColor, 0.5) },
+          ticks: {
+            color: textColor,
+            maxRotation: 60,
+            minRotation: 45,
+            font: { size: 10, weight: '600' },
+            // Garante que o valor exibido já está no formato MÊS/ANO
+            // (os labels já foram normalizados, este callback apenas repassa)
+            callback: function(val, idx) {
+              return this.getLabelForValue(idx);
+            }
+          }
+        },
+        y1: {
+          type: 'linear', position: 'left',
+          min: 0, max: 100,
+          grid: { color: hexToRgba(borderColor, 0.5) },
+          ticks: { color: textColor, stepSize: 10, callback: v => v + '%' },
+          title: { display: true, text: 'Acumulado (%)', color: mutedColor }
+        },
+        y2: {
+          type: 'linear', position: 'right',
+          min: 0, max: 10,
+          grid: { drawOnChartArea: false },
+          ticks: { color: mutedColor, stepSize: 1, callback: v => v + '%' },
+          title: { display: true, text: 'Mensal (%)', color: mutedColor }
+        }
+      }
+    }
+  });
+}
+
+/* ================================================
+   GRÁFICO DE BARRAS — EVOLUÇÃO POR PAVIMENTO
+   Ajuste 5: apenas Realizado (sem Previsto); rótulos no meio das barras
+   Linhas rStart-rEnd (índices), Col A = Pavimento, Col C = Realizado (índice 2)
+   ================================================ */
+function renderEvolucaoPavimento(sheet, canvasId, rStart, rEnd) {
+  destroyChart(canvasId);
+  const colors      = getChartColors();
+  const textColor   = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
+  const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim();
+
+  const labels = [], realData = [];
+
+  for (let r = rStart + 1; r <= rEnd; r++) {  // +1 pula cabeçalho
+    const row = sheet[r] || [];
+    if (isEmptyRow(row)) continue;
+    const pav = String(row[0] || '').trim();
+    if (!pav) continue;
+    labels.push(pav);
+    realData.push(toNum(row[2]));  // col C = Realizado
+  }
+
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  // Altura dinâmica: 40px por barra mínimo
+  const barH = Math.max(labels.length * 44, 300);
+  ctx.parentElement.style.height = barH + 'px';
+
+  // Plugin para rótulos no centro de cada barra horizontal
+  const centerLabelPlugin = {
+    id: 'centerLabelsPavimento',
+    afterDatasetsDraw(chart) {
+      const { ctx: c } = chart;
+      chart.data.datasets.forEach((dataset, dIdx) => {
+        const meta = chart.getDatasetMeta(dIdx);
+        meta.data.forEach((bar, i) => {
+          const val = dataset.data[i];
+          if (!val) return;
+          const text = val.toFixed(1) + '%';
+          c.save();
+          c.font = 'bold 11px Segoe UI, sans-serif';
+          c.textBaseline = 'middle';
+          c.textAlign = 'center';
+          // Centro horizontal da barra
+          const barStart = chart.scales.x.getPixelForValue(0);
+          const barEnd   = bar.x;
+          const centerX  = (barStart + barEnd) / 2;
+          // Largura da barra longa o suficiente para o texto?
+          const textW = c.measureText(text).width;
+          if ((barEnd - barStart) > textW + 10) {
+            c.fillStyle = '#FFFFFF';
+            c.fillText(text, centerX, bar.y);
+          } else {
+            // Escreve fora da barra à direita
+            c.fillStyle = textColor;
+            c.textAlign = 'left';
+            c.fillText(text, barEnd + 5, bar.y);
+          }
+          c.restore();
+        });
+      });
+    }
+  };
+
+  STATE.chartInstances[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Realizado',
+          data: realData,
+          backgroundColor: hexToRgba(colors[1], 0.88),
+          borderColor: colors[1],
+          borderWidth: 1.5,
+          borderRadius: 4,
+          barThickness: 26,    // espessura fixa para barras bem visíveis
+        }
+      ]
+    },
+    plugins: [centerLabelPlugin],
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },  // sem Previsto, legenda desnecessária
+        tooltip: { callbacks: { label: ctx => ` Realizado: ${ctx.raw.toFixed(1)}%` } },
+      },
+      scales: {
+        x: {
+          min: 0, max: 100,
+          grid: { color: hexToRgba(borderColor, 0.5) },
+          ticks: { color: textColor, callback: v => v + '%' }
+        },
+        y: {
+          ticks: {
+            color: textColor,
+            font: { weight: '700', size: 11 },
+          },
+          grid: { color: hexToRgba(borderColor, 0.3) }
+        }
+      }
+    }
+  });
+}
+
+/* ================================================
+   DESTRUIR CHART EXISTENTE (para não duplicar)
+   ================================================ */
+function destroyChart(id) {
+  if (STATE.chartInstances[id]) {
+    STATE.chartInstances[id].destroy();
+    delete STATE.chartInstances[id];
+  }
+}
+
+/* ================================================
+   EXPORTAÇÃO EM PDF (via html2canvas + jsPDF)
+   ================================================ */
+async function exportPDF() {
+  showToast('Gerando PDF... aguarde.', 'info');
+  try {
+    const { jsPDF } = window.jspdf;
+    const content = document.getElementById('pdf-content');
+    const canvas = await html2canvas(content, { scale: 1.5, useCORS: true, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-page').trim() });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+    const pW = pdf.internal.pageSize.getWidth();
+    const pH = pdf.internal.pageSize.getHeight();
+    const ratio = canvas.width / canvas.height;
+    let w = pW, h = pW / ratio;
+    if (h > pH) { h = pH; w = pH * ratio; }
+    pdf.addImage(imgData, 'PNG', 0, 0, w, h);
+    pdf.save('relatorio-sabara-platz.pdf');
+    showToast('PDF exportado com sucesso!', 'success');
+  } catch(e) {
+    showToast('Erro ao gerar PDF: ' + e.message, 'error');
+  }
+}
+
+/* ================================================
+   TRADUÇÃO (PT ↔ EN)
+   ================================================ */
+const TRANSLATIONS = {
+  pt: {
+    'empty-title': 'Importe um arquivo para visualizar o dashboard',
+    'empty-sub': 'Formatos aceitos: .csv e .xlsx — Os gráficos serão gerados automaticamente',
+    'sec-prazos': '1 – Prazos Contratuais',
+    'sec-fisico': '2 – Status Físico',
+    'sec-financeiro': '3 – Status Financeiro',
+    'sec-efetivo': '4 – Efetivo de Obra',
+    'sec-semanal-s': '1 – Evolução Semanal (Platz)',
+    'sec-mensal-s': '2 – Evolução Mensal (Platz)',
+    'sec-pav-s': '3 – Evolução por Pavimento (Platz)',
+    'sec-semanal-p': '1 – Evolução Semanal (Sabará)',
+    'sec-mensal-p': '2 – Evolução Mensal (Sabará)',
+    'sec-pav-p': '3 – Evolução por Pavimento (Sabará)',
+    'lang-btn': '🌐 ENGLISH',
+  },
+  en: {
+    'empty-title': 'Import a file to view the dashboard',
+    'empty-sub': 'Accepted formats: .csv and .xlsx — Charts will be generated automatically',
+    'sec-prazos': '1 – Contract Deadlines',
+    'sec-fisico': '2 – Physical Status',
+    'sec-financeiro': '3 – Financial Status',
+    'sec-efetivo': '4 – Site Workforce',
+    'sec-semanal-s': '1 – Weekly Progress (Platz)',
+    'sec-mensal-s': '2 – Monthly Progress (Platz)',
+    'sec-pav-s': '3 – Progress by Floor (Platz)',
+    'sec-semanal-p': '1 – Weekly Progress (Sabará)',
+    'sec-mensal-p': '2 – Monthly Progress (Sabará)',
+    'sec-pav-p': '3 – Progress by Floor (Sabará)',
+    'lang-btn': '🌐 PORTUGUÊS',
+  }
+};
+
+function toggleLanguage() {
+  STATE.language = STATE.language === 'pt' ? 'en' : 'pt';
+  applyTranslations();
+}
+
+function applyTranslations() {
+  const t = TRANSLATIONS[STATE.language];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key]) el.textContent = t[key];
+  });
+  document.getElementById('lang-btn').textContent = t['lang-btn'];
+}
+
+/* ================================================
+   TOAST (notificações flutuantes)
+   ================================================ */
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+/* ================================================
+   INICIALIZAÇÃO
+   ================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  applyTranslations();
+  // Mostra dica inicial
+  showToast('Dashboard pronto! Importe um arquivo CSV ou XLSX para começar.', 'info');
+});
+</script>
+</body>
+</html>
