@@ -3,2238 +3,1104 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Relatório Semanal – Sabará Platz</title>
+<title>Dashboard de Gestão de Obras</title>
 
-<!-- Chart.js para gráficos -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<!-- SheetJS para leitura de XLSX -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- jsPDF para exportação PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- ============================================================
+     LIBS EXTERNAS (via CDN, sem instalação / sem build)
+     - Chart.js: gráficos
+     - chartjs-plugin-datalabels: rótulos dentro/acima das barras e roscas
+     - jsPDF + html2canvas: exportação em PDF
+     ============================================================ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- xlsx (SheetJS): lê o arquivo .xlsx binário direto no navegador, sem backend -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-/* ============================================
-   VARIÁVEIS DE TEMA – PADRÃO (CLARO)
-   ============================================ */
-:root {
-  --bg-page:        #F0F2F5;
-  --bg-card:        #FFFFFF;
-  --bg-header:      #1A2341;
-  --bg-tab-active:  #2563EB;
-  --bg-tab:         #FFFFFF;
-  --color-primary:  #2563EB;
-  --color-accent:   #F59E0B;
-  --color-text:     #1E293B;
-  --color-muted:    #64748B;
-  --color-border:   #E2E8F0;
-  --color-success:  #10B981;
-  --color-danger:   #EF4444;
-  --color-tab-text: #64748B;
-  --color-tab-active-text: #FFFFFF;
-  --shadow-card:    0 2px 12px rgba(0,0,0,0.08);
-  --radius:         12px;
-  --radius-sm:      8px;
-  --font-main:      'Segoe UI', system-ui, -apple-system, sans-serif;
+/* ==============================================================
+   DESIGN TOKENS — paleta executiva de BI (fundo claro, acentos
+   em azul-aço / teal / âmbar, tipografia forte Manrope + Inter)
+   ============================================================== */
+:root{
+  --bg:            #F4F6F9;
+  --surface:       #FFFFFF;
+  --surface-2:     #FBFCFE;
+  --ink:           #0F172A;
+  --ink-soft:      #47526B;
+  --muted:         #8592AC;
+  --border:        #E3E8F0;
+  --border-strong: #C7D0E0;
 
-  /* Paleta gráficos */
-  --chart-1: #2563EB;
-  --chart-2: #F59E0B;
-  --chart-3: #10B981;
-  --chart-4: #EF4444;
-  --chart-5: #8B5CF6;
-  --chart-6: #06B6D4;
+  --navy:          #0F1F3D;
+  --steel:         #2A5CDB;
+  --steel-soft:    #EAF0FE;
+  --teal:          #0EA5A0;
+  --teal-soft:     #E4F7F5;
+  --amber:         #F0A50B;
+  --amber-soft:    #FDF2DD;
+  --rose:          #E23A5E;
+  --rose-soft:     #FCE7EC;
+  --violet:        #7C5CFC;
+
+  --shadow-sm: 0 1px 2px rgba(15,31,61,.05), 0 1px 1px rgba(15,31,61,.04);
+  --shadow-md: 0 10px 30px -12px rgba(15,31,61,.18);
+  --radius: 16px;
+  --radius-sm: 10px;
 }
 
-/* ============================================
-   TEMA DARK
-   ============================================ */
-[data-theme="dark"] {
-  --bg-page:        #0F172A;
-  --bg-card:        #1E293B;
-  --bg-header:      #0A0F1E;
-  --bg-tab-active:  #3B82F6;
-  --bg-tab:         #1E293B;
-  --color-primary:  #3B82F6;
-  --color-accent:   #F59E0B;
-  --color-text:     #F1F5F9;
-  --color-muted:    #94A3B8;
-  --color-border:   #334155;
-  --color-success:  #34D399;
-  --color-danger:   #F87171;
-  --color-tab-text: #94A3B8;
-  --color-tab-active-text: #FFFFFF;
-  --shadow-card:    0 2px 16px rgba(0,0,0,0.4);
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{font-family:'Manrope',system-ui,sans-serif;}
+
+/* ---------- App shell ---------- */
+.app{max-width:1440px;margin:0 auto;padding:28px 28px 80px;}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:24px;flex-wrap:wrap;margin-bottom:22px;
+}
+.brand-eyebrow{
+  font-size:11px;letter-spacing:.14em;font-weight:700;color:var(--steel);
+  text-transform:uppercase;margin:0 0 6px;
+}
+.brand-title{
+  font-size:28px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1.15;
+}
+.brand-sub{font-size:13.5px;color:var(--ink-soft);margin:0;}
+.topbar-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:10px;border:1px solid var(--border-strong);
+  background:var(--surface);color:var(--ink);font-weight:600;font-size:13.5px;
+  cursor:pointer;transition:.15s ease;font-family:inherit;
+}
+.btn:hover{border-color:var(--steel);color:var(--steel);box-shadow:var(--shadow-sm);}
+.btn-primary{background:var(--navy);border-color:var(--navy);color:#fff;}
+.btn-primary:hover{background:var(--steel);border-color:var(--steel);color:#fff;}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--ink-soft);}
+.btn svg{width:15px;height:15px;flex:none;}
+
+.meta-row{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+  margin-bottom:22px;padding:10px 16px;background:var(--surface-2);
+  border:1px solid var(--border);border-radius:12px;font-size:12.5px;color:var(--ink-soft);
+}
+.meta-row b{color:var(--navy);}
+#statusPill{display:inline-flex;align-items:center;gap:6px;font-weight:600;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--teal);}
+.dot.err{background:var(--rose);}
+.dot.loading{background:var(--amber);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ---------- Tabs (Abas) ---------- */
+.tabs{display:flex;gap:6px;margin-bottom:22px;border-bottom:1px solid var(--border);}
+.tab-btn{
+  padding:12px 20px;font-weight:700;font-size:14px;color:var(--muted);
+  background:transparent;border:none;border-bottom:2px solid transparent;
+  cursor:pointer;font-family:'Manrope',sans-serif;transition:.15s;
+}
+.tab-btn.active{color:var(--navy);border-bottom-color:var(--steel);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;animation:fade .25s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- Section headers ---------- */
+.section{margin-bottom:28px;}
+.section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+.section-num{
+  font-family:'Manrope',sans-serif;font-weight:800;font-size:12px;color:var(--steel);
+  background:var(--steel-soft);padding:3px 9px;border-radius:20px;letter-spacing:.02em;
+}
+.section-title{font-size:16.5px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em;}
+
+/* ---------- Grid / Cards ---------- */
+.grid{display:grid;gap:18px;}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-12{grid-template-columns:repeat(12,1fr);}
+.span-4{grid-column:span 4;}
+.span-6{grid-column:span 6;}
+.span-8{grid-column:span 8;}
+.span-12{grid-column:span 12;}
+
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px 22px;box-shadow:var(--shadow-sm);
+}
+.card-title{
+  font-size:11.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;
+  letter-spacing:.06em;margin:0 0 14px;
+}
+.chart-box{position:relative;width:100%;}
+.chart-box.h-220{height:220px;}
+.chart-box.h-280{height:280px;}
+.chart-box.h-320{height:320px;}
+.chart-box.h-380{height:380px;}
+.chart-box.h-tall{height:560px;}
+
+/* ---------- KPI cards ---------- */
+.kpi{
+  background:linear-gradient(155deg,var(--surface) 0%,var(--surface-2) 100%);
+  border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;
+  display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow-sm);
+}
+.kpi-label{font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;}
+.kpi-value{font-size:30px;font-weight:800;font-family:'Manrope',sans-serif;color:var(--navy);}
+.kpi-value.pos{color:var(--teal);}
+.kpi-value.neg{color:var(--rose);}
+.kpi-sub{font-size:12px;color:var(--muted);}
+
+/* ---------- Tables ---------- */
+.table-wrap{overflow-x:auto;border-radius:var(--radius-sm);border:1.5px solid var(--border-strong);}
+table.data-table{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--surface);}
+table.data-table th{
+  background:var(--navy);color:#fff;font-weight:700;text-align:left;padding:11px 14px;
+  font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;
+}
+table.data-table td{
+  padding:11px 14px;border:1.5px solid var(--border-strong);color:var(--ink);font-weight:500;
+}
+table.data-table tr:nth-child(even) td{background:var(--surface-2);}
+table.data-table td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;}
+table.data-table td.merged-label{background:var(--steel-soft)!important;font-weight:700;color:var(--navy);}
+
+/* ---------- Filters / explorer ---------- */
+.filter-bar{
+  display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;
+}
+.filter-field{display:flex;flex-direction:column;gap:4px;min-width:180px;}
+.filter-field label{font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;}
+select.filter-select{
+  padding:9px 12px;border-radius:8px;border:1px solid var(--border-strong);background:#fff;
+  font-family:inherit;font-size:13.5px;color:var(--ink);font-weight:600;cursor:pointer;
 }
 
-/* ============================================
-   TEMA VERMELHO/PRETO/BRANCO
-   ============================================ */
-[data-theme="red"] {
-  --bg-page:        #F5F5F5;
-  --bg-card:        #FFFFFF;
-  --bg-header:      #1A1A1A;
-  --bg-tab-active:  #DC2626;
-  --bg-tab:         #FFFFFF;
-  --color-primary:  #DC2626;
-  --color-accent:   #1A1A1A;
-  --color-text:     #1A1A1A;
-  --color-muted:    #6B6B6B;
-  --color-border:   #E5E5E5;
-  --color-success:  #16A34A;
-  --color-danger:   #DC2626;
-  --color-tab-text: #6B6B6B;
-  --color-tab-active-text: #FFFFFF;
-  --shadow-card:    0 2px 12px rgba(0,0,0,0.1);
-  --chart-1: #DC2626;
-  --chart-2: #1A1A1A;
-  --chart-3: #737373;
-  --chart-4: #EF4444;
-  --chart-5: #9CA3AF;
-  --chart-6: #4B5563;
+/* ---------- Notices ---------- */
+.notice{
+  border:1px dashed var(--border-strong);background:var(--amber-soft);border-radius:var(--radius-sm);
+  padding:14px 16px;font-size:13px;color:#7A5306;display:flex;gap:10px;align-items:flex-start;
+}
+.notice.err{background:var(--rose-soft);color:#8C1D3B;border-color:var(--rose);}
+.notice svg{flex:none;width:18px;height:18px;margin-top:1px;}
+
+.empty-state{
+  padding:40px 20px;text-align:center;color:var(--muted);font-size:13.5px;
+  border:1.5px dashed var(--border-strong);border-radius:var(--radius-sm);background:var(--surface-2);
 }
 
-/* ============================================
-   TEMA AZUL
-   ============================================ */
-[data-theme="blue"] {
-  --bg-page:        #EFF6FF;
-  --bg-card:        #FFFFFF;
-  --bg-header:      #1E3A8A;
-  --bg-tab-active:  #1D4ED8;
-  --bg-tab:         #DBEAFE;
-  --color-primary:  #1D4ED8;
-  --color-accent:   #0EA5E9;
-  --color-text:     #1E3A8A;
-  --color-muted:    #3B82F6;
-  --color-border:   #BFDBFE;
-  --color-success:  #0284C7;
-  --color-danger:   #2563EB;
-  --color-tab-text: #3B82F6;
-  --color-tab-active-text: #FFFFFF;
-  --shadow-card:    0 2px 12px rgba(29,78,216,0.12);
-  --chart-1: #1D4ED8;
-  --chart-2: #0EA5E9;
-  --chart-3: #38BDF8;
-  --chart-4: #7DD3FC;
-  --chart-5: #93C5FD;
-  --chart-6: #1E3A8A;
+footer.appfoot{margin-top:40px;text-align:center;color:var(--muted);font-size:12px;}
+
+@media(max-width:1080px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  .span-4,.span-6,.span-8{grid-column:span 12;}
 }
-
-/* ============================================
-   RESET E BASE
-   ============================================ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: var(--font-main);
-  background: var(--bg-page);
-  color: var(--color-text);
-  min-height: 100vh;
-  transition: background 0.3s, color 0.3s;
-  font-size: 14px;
-}
-
-/* ============================================
-   HEADER
-   ============================================ */
-.header {
-  background: var(--bg-header);
-  padding: 20px 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-left { display: flex; flex-direction: column; gap: 2px; }
-
-.header-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #FFFFFF;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.header-subtitle {
-  font-size: 11px;
-  color: rgba(255,255,255,0.55);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-.header-subtitle span { color: var(--color-accent); font-weight: 600; }
-
-.header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-/* ============================================
-   BOTÕES
-   ============================================ */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--font-main);
-  transition: all 0.2s;
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.btn-primary   { background: var(--color-primary); color: #fff; }
-.btn-accent    { background: var(--color-accent); color: #1A2341; }
-.btn-dark      { background: #334155; color: #fff; }
-.btn-outline   { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,0.35); }
-.btn-sm        { padding: 6px 10px; font-size: 11px; }
-
-.btn:hover { opacity: 0.85; transform: translateY(-1px); }
-.btn:active { transform: translateY(0); }
-
-/* Seletor de tema */
-.theme-select {
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-  font-size: 12px;
-  font-family: var(--font-main);
-  cursor: pointer;
-  outline: none;
-}
-
-.theme-select option { background: #1A2341; color: #fff; }
-
-/* ============================================
-   CARGA DE DADOS
-   ============================================ */
-.upload-bar {
-  background: var(--bg-card);
-  border-bottom: 2px solid var(--color-border);
-  padding: 12px 32px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.upload-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-muted);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.upload-label::before {
-  content: '';
-  display: inline-block;
-  width: 3px;
-  height: 14px;
-  background: var(--color-primary);
-  border-radius: 2px;
-}
-
-.file-input-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.file-input-wrapper input[type="file"] {
-  position: absolute;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.last-update {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--color-muted);
-}
-
-.last-update span { color: var(--color-primary); font-weight: 600; }
-
-/* ============================================
-   ABAS
-   ============================================ */
-.tabs-wrapper {
-  background: var(--bg-card);
-  border-bottom: 2px solid var(--color-border);
-  padding: 0 32px;
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-}
-
-.tab-btn {
-  padding: 14px 20px;
-  background: transparent;
-  border: none;
-  border-bottom: 3px solid transparent;
-  color: var(--color-tab-text);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--font-main);
-  cursor: pointer;
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.2s;
-}
-
-.tab-btn:hover { color: var(--color-primary); }
-
-.tab-btn.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-  background: rgba(37,99,235,0.05);
-}
-
-/* ============================================
-   CONTEÚDO PRINCIPAL
-   ============================================ */
-.main-content { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
-
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-/* ============================================
-   SEÇÕES
-   ============================================ */
-.section {
-  margin-bottom: 28px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--color-border);
-}
-
-.section-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--color-text);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.section-badge {
-  background: var(--color-primary);
-  color: #fff;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-/* ============================================
-   CARDS
-   ============================================ */
-.card {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--color-border);
-  transition: background 0.3s, border-color 0.3s;
-}
-
-.card-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 12px;
-}
-
-/* ============================================
-   GRID LAYOUTS
-   ============================================ */
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-
-@media (max-width: 1100px) {
-  .grid-3 { grid-template-columns: repeat(2, 1fr); }
-  .grid-4 { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 700px) {
-  .grid-3, .grid-2, .grid-4 { grid-template-columns: 1fr; }
-  .main-content { padding: 16px; }
-  .header { padding: 14px 16px; }
-  .tabs-wrapper { padding: 0 16px; }
-  .upload-bar { padding: 10px 16px; }
-}
-
-/* ============================================
-   KPIs
-   ============================================ */
-.kpi-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.kpi-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: var(--bg-page);
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--color-primary);
-}
-
-.kpi-label { font-size: 11px; color: var(--color-muted); font-weight: 600; }
-
-.kpi-value {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--color-text);
-}
-
-.kpi-value.positive { color: var(--color-success); }
-.kpi-value.negative { color: var(--color-danger); }
-.kpi-value.neutral  { color: var(--color-primary); }
-
-/* ============================================
-   STATUS GROUP (rosca + KPIs)
-   ============================================ */
-.status-group-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-@media (max-width: 900px) {
-  .status-group-grid { grid-template-columns: 1fr; }
-}
-
-.status-card {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.status-card-title {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--color-primary);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  align-self: flex-start;
-}
-
-.donut-row {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  width: 100%;
-}
-
-.donut-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.donut-label {
-  font-size: 10px;
-  color: var(--color-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.donut-canvas-wrap { position: relative; width: 110px; height: 110px; }
-
-.donut-center-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  pointer-events: none;
-}
-
-.donut-center-value {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--color-text);
-  display: block;
-}
-
-.donut-center-sub {
-  font-size: 9px;
-  color: var(--color-muted);
-  display: block;
-}
-
-.kpi-row {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-  justify-content: space-around;
-}
-
-.kpi-pill {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-page);
-  min-width: 80px;
-}
-
-.kpi-pill-label { font-size: 9px; color: var(--color-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.kpi-pill-value { font-size: 17px; font-weight: 800; margin-top: 2px; }
-.kpi-pill-value.pos { color: var(--color-success); }
-.kpi-pill-value.neg { color: var(--color-danger); }
-
-/* ============================================
-   TABELA DE PRAZOS
-   ============================================ */
-.table-scroll { overflow-x: auto; }
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.data-table th {
-  background: var(--bg-header);
-  color: #FFFFFF;
-  padding: 10px 12px;
-  text-align: left;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: 1px solid rgba(255,255,255,0.1);
-  font-size: 11px;
-}
-
-.data-table td {
-  padding: 9px 12px;
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  vertical-align: middle;
-}
-
-.data-table tr:nth-child(even) td { background: rgba(37,99,235,0.03); }
-.data-table tr:hover td { background: rgba(37,99,235,0.07); }
-
-/* ============================================
-   ÁREA DE GRÁFICOS
-   ============================================ */
-.chart-container {
-  position: relative;
-  width: 100%;
-}
-
-.chart-container canvas { width: 100% !important; }
-
-/* Alturas padrão por tipo */
-.chart-h300 { height: 300px; }
-.chart-h400 { height: 400px; }
-.chart-h500 { height: 500px; }
-.chart-h600 { height: 600px; }
-
-/* ============================================
-   FILTROS DE GRÁFICO
-   ============================================ */
-.filter-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-  align-items: center;
-}
-
-.filter-select {
-  padding: 7px 12px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--color-border);
-  background: var(--bg-card);
-  color: var(--color-text);
-  font-size: 12px;
-  font-family: var(--font-main);
-  cursor: pointer;
-  outline: none;
-}
-
-.filter-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  align-self: center;
-}
-
-/* ============================================
-   ESTADO VAZIO / LOADING
-   ============================================ */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  color: var(--color-muted);
-  text-align: center;
-  gap: 12px;
-}
-
-.empty-icon { font-size: 48px; opacity: 0.4; }
-.empty-title { font-size: 15px; font-weight: 700; }
-.empty-sub { font-size: 12px; }
-
-/* ============================================
-   SCROLLBAR
-   ============================================ */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-page); }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-
-/* ============================================
-   TOAST
-   ============================================ */
-.toast-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.toast {
-  padding: 12px 18px;
-  border-radius: var(--radius-sm);
-  background: #1E293B;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-  animation: slideIn 0.3s ease;
-  max-width: 320px;
-}
-
-.toast.success { border-left: 4px solid #10B981; }
-.toast.error   { border-left: 4px solid #EF4444; }
-.toast.info    { border-left: 4px solid #2563EB; }
-
-@keyframes slideIn {
-  from { transform: translateX(60px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
-}
-
-/* ============================================
-   RESPONSIVIDADE GERAL
-   ============================================ */
-@media (max-width: 600px) {
-  .header-title { font-size: 15px; }
-  .status-group-grid { grid-template-columns: 1fr; }
-  .donut-row { flex-direction: column; align-items: center; }
+@media print{
+  .topbar-actions,.btn,.tabs{display:none!important;}
 }
 </style>
 </head>
-<body data-theme="light">
+<body>
 
-<!-- ============================================
-     HEADER PRINCIPAL
-     ============================================ -->
-<header class="header">
-  <div class="header-left">
-    <div class="header-title">📊 Relatório Semanal – Sabará Platz</div>
-    <div class="header-subtitle">Dashboard: <span id="dashboard-subtitle">Aguardando carregamento de dados</span></div>
-  </div>
-  <div class="header-right">
-    <!-- Seletor de tema -->
-    <select class="theme-select" onchange="setTheme(this.value)" title="Selecionar Tema">
-      <option value="light">🎨 Tema Padrão</option>
-      <option value="dark">🌙 Dark</option>
-      <option value="red">🔴 Vermelho/P&B</option>
-      <option value="blue">💙 Azul</option>
-    </select>
-    <button class="btn btn-outline btn-sm" onclick="toggleLanguage()" id="lang-btn">🌐 ENGLISH</button>
-    <button class="btn btn-accent btn-sm" onclick="exportPDF()">📄 PDF</button>
-    <button class="btn btn-outline btn-sm" onclick="refreshData()">🔄 Atualizar</button>
-  </div>
-</header>
+<div class="app" id="appRoot">
 
-<!-- ============================================
-     BARRA DE CARGA DE DADOS
-     ============================================ -->
-<div class="upload-bar">
-  <div class="upload-label">📂 Carga de Dados</div>
-  <div class="file-input-wrapper">
-    <button class="btn btn-primary btn-sm">⬆ Importar CSV / XLSX</button>
-    <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(event)" id="file-input">
+  <!-- ============================================================
+       CABEÇALHO
+       ============================================================ -->
+  <div class="topbar">
+    <div>
+      <p class="brand-eyebrow" data-i18n="eyebrow">Business Intelligence · Construção Civil</p>
+      <h1 class="brand-title" id="dashTitle">DASHBOARD DO ASSUNTO: SABARÁ PLATZ</h1>
+      <p class="brand-sub" id="dashSubtitle" data-i18n="subtitle">Acompanhamento executivo de prazos, custos, produção e suprimentos</p>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" id="btnRefresh" onclick="refreshAllData()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        <span data-i18n="btnRefresh">Atualizar dados</span>
+      </button>
+      <button class="btn" id="btnPdf" onclick="exportPdf()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span data-i18n="btnPdf">Exportar PDF</span>
+      </button>
+      <button class="btn btn-primary" id="btnLang" onclick="toggleLanguage()">EN</button>
+    </div>
   </div>
-  <span id="file-name" style="font-size:12px; color:var(--color-muted);">Nenhum arquivo carregado</span>
-  <div class="last-update">
-    Última atualização: <span id="last-update-time">—</span>
+
+  <div class="meta-row">
+    <span id="statusPill"><span class="dot" id="statusDot"></span><span id="statusText" data-i18n="statusOk">Dados carregados</span></span>
+    <span><span data-i18n="lastUpdate">Última atualização:</span> <b id="lastUpdateTime">—</b></span>
   </div>
+
+  <!-- ============================================================
+       ABAS (TABS)
+       ============================================================ -->
+  <div class="tabs" id="tabsNav">
+    <button class="tab-btn active" data-tab="aba1" onclick="switchTab('aba1')" id="tabBtnAba1">Aba 01</button>
+    <button class="tab-btn" data-tab="aba2" onclick="switchTab('aba2')" id="tabBtnAba2">Aba 02</button>
+  </div>
+
+  <div id="tabContent"></div>
+
+  <footer class="appfoot" data-i18n="footer">Dashboard gerado automaticamente a partir da planilha de origem · Uso interno de gestão de obras</footer>
 </div>
 
-<!-- ============================================
-     ABAS DE NAVEGAÇÃO
-     ============================================ -->
-<div class="tabs-wrapper">
-  <button class="tab-btn active" onclick="switchTab(0)" id="tab-btn-0">📋 ABA 01 – Resumo</button>
-  <button class="tab-btn" onclick="switchTab(1)" id="tab-btn-1">📈 ABA 02 – Platz</button>
-  <button class="tab-btn" onclick="switchTab(2)" id="tab-btn-2">📊 ABA 03 – Sabará</button>
-</div>
-
-<!-- ============================================
-     CONTEÚDO DAS ABAS
-     ============================================ -->
-<div class="main-content" id="pdf-content">
-
-  <!-- ==========================================
-       ABA 01 — RESUMO / OVERVIEW
-       ========================================== -->
-  <div class="tab-content active" id="tab-0">
-
-    <!-- Estado inicial / guia -->
-    <div id="empty-state-0" class="empty-state">
-      <div class="empty-icon">📂</div>
-      <div class="empty-title" data-i18n="empty-title">Importe um arquivo para visualizar o dashboard</div>
-      <div class="empty-sub" data-i18n="empty-sub">Formatos aceitos: .csv e .xlsx — Os gráficos serão gerados automaticamente</div>
-    </div>
-
-    <!-- Conteúdo real (oculto até dados serem carregados) -->
-    <div id="content-tab-0" style="display:none;">
-
-      <!-- 1. PRAZOS CONTRATUAIS -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-prazos">1 – Prazos Contratuais</div>
-          <div class="section-badge">TABELA</div>
-        </div>
-        <div class="card">
-          <div class="table-scroll">
-            <table class="data-table" id="tabela-prazos">
-              <thead><tr id="prazos-header"></tr></thead>
-              <tbody id="prazos-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. STATUS FÍSICO -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-fisico">2 – Status Físico</div>
-          <div class="section-badge">PROGRESSO</div>
-        </div>
-        <div class="status-group-grid">
-          <!-- GERAL -->
-          <div class="status-card">
-            <div class="status-card-title">🏗 Geral</div>
-            <div class="donut-row">
-              <div class="donut-wrap">
-                <div class="donut-canvas-wrap">
-                  <canvas id="donut-geral-prev" width="110" height="110"></canvas>
-                  <div class="donut-center-text">
-                    <span class="donut-center-value" id="val-geral-prev">—</span>
-                    <span class="donut-center-sub">PREV</span>
-                  </div>
-                </div>
-                <div class="donut-label">Previsto</div>
-              </div>
-              <div class="donut-wrap">
-                <div class="donut-canvas-wrap">
-                  <canvas id="donut-geral-real" width="110" height="110"></canvas>
-                  <div class="donut-center-text">
-                    <span class="donut-center-value" id="val-geral-real">—</span>
-                    <span class="donut-center-sub">REAL</span>
-                  </div>
-                </div>
-                <div class="donut-label">Realizado</div>
-              </div>
-            </div>
-            <div class="kpi-row">
-              <div class="kpi-pill">
-                <div class="kpi-pill-label">Desvio %</div>
-                <div class="kpi-pill-value" id="kpi-geral-devp">—</div>
-              </div>
-              <div class="kpi-pill">
-                <div class="kpi-pill-label">Desvio dias</div>
-                <div class="kpi-pill-value" id="kpi-geral-devd">—</div>
-              </div>
-            </div>
-          </div>
-          <!-- SABARÁ -->
-          <div class="status-card">
-            <div class="status-card-title">🏢 Sabará</div>
-            <div class="donut-row">
-              <div class="donut-wrap">
-                <div class="donut-canvas-wrap">
-                  <canvas id="donut-sabara-prev" width="110" height="110"></canvas>
-                  <div class="donut-center-text">
-                    <span class="donut-center-value" id="val-sabara-prev">—</span>
-                    <span class="donut-center-sub">PREV</span>
-                  </div>
-                </div>
-                <div class="donut-label">Previsto</div>
-              </div>
-              <div class="donut-wrap">
-                <div class="donut-canvas-wrap">
-                  <canvas id="donut-sabara-real" width="110" height="110"></canvas>
-                  <div class="donut-center-text">
-                    <span class="donut-center-value" id="val-sabara-real">—</span>
-                    <span class="donut-center-sub">REAL</span>
-                  </div>
-                </div>
-                <div class="donut-label">Realizado</div>
-              </div>
-            </div>
-            <div class="kpi-row">
-              <div class="kpi-pill">
-                <div class="kpi-pill-label">Desvio %</div>
-                <div class="kpi-pill-value" id="kpi-sabara-devp">—</div>
-              </div>
-              <div class="kpi-pill">
-                <div class="kpi-pill-label">Desvio dias</div>
-                <div class="kpi-pill-value" id="kpi-sabara-devd">—</div>
-              </div>
-            </div>
-          </div>
-          <!-- PLATZ -->
-          <div class="status-card">
-            <div class="status-card-title">🏬 Platz</div>
-            <div class="donut-row">
-              <div class="donut-wrap">
-                <div class="donut-canvas-wrap">
-                  <canvas id="donut-platz-prev" width="110" height="110"></canvas>
-                  <div class="donut-center-text">
-                    <span class="donut-center-value" id="val-platz-prev">—</span>
-                    <span class="donut-center-sub">PREV</span>
-                  </div>
-                </div>
-                <div class="donut-label">Previsto</div>
-              </div>
-              <div class="donut-wrap">
-                <div class="donut-canvas-wrap">
-                  <canvas id="donut-platz-real" width="110" height="110"></canvas>
-                  <div class="donut-center-text">
-                    <span class="donut-center-value" id="val-platz-real">—</span>
-                    <span class="donut-center-sub">REAL</span>
-                  </div>
-                </div>
-                <div class="donut-label">Realizado</div>
-              </div>
-            </div>
-            <div class="kpi-row">
-              <div class="kpi-pill">
-                <div class="kpi-pill-label">Desvio %</div>
-                <div class="kpi-pill-value" id="kpi-platz-devp">—</div>
-              </div>
-              <div class="kpi-pill">
-                <div class="kpi-pill-label">Desvio dias</div>
-                <div class="kpi-pill-value" id="kpi-platz-devd">—</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. STATUS FINANCEIRO -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-financeiro">3 – Status Financeiro</div>
-          <div class="section-badge">GRÁFICO</div>
-        </div>
-        <div class="card">
-          <div class="chart-container chart-h500">
-            <canvas id="chart-financeiro"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. EFETIVO DE OBRA -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-efetivo">4 – Efetivo de Obra</div>
-          <div class="section-badge">GRÁFICO</div>
-        </div>
-        <div class="card">
-          <div class="chart-container chart-h300">
-            <canvas id="chart-efetivo"></canvas>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /content-tab-0 -->
-  </div><!-- /tab-0 -->
-
-  <!-- ==========================================
-       ABA 02 — PLATZ
-       ========================================== -->
-  <div class="tab-content" id="tab-1">
-
-    <div id="empty-state-1" class="empty-state">
-      <div class="empty-icon">📂</div>
-      <div class="empty-title" data-i18n="empty-title">Importe um arquivo para visualizar o dashboard</div>
-      <div class="empty-sub" data-i18n="empty-sub">Formatos aceitos: .csv e .xlsx</div>
-    </div>
-
-    <div id="content-tab-1" style="display:none;">
-
-      <!-- 1. EVOLUÇÃO SEMANAL -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-semanal-s">1 – Evolução Semanal (Platz)</div>
-          <div class="section-badge">COMBINAÇÃO</div>
-        </div>
-        <div class="card">
-          <div class="chart-container chart-h400">
-            <canvas id="chart-semanal-sabara"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. EVOLUÇÃO MENSAL -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-mensal-s">2 – Evolução Mensal (Platz)</div>
-          <div class="section-badge">COMBINAÇÃO</div>
-        </div>
-        <div class="card">
-          <div style="overflow-x:auto;">
-            <div class="chart-container chart-h400" style="min-width:900px;">
-              <canvas id="chart-mensal-sabara"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. EVOLUÇÃO POR PAVIMENTO -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-pav-s">3 – Evolução por Pavimento (Platz)</div>
-          <div class="section-badge">BARRAS</div>
-        </div>
-        <div class="card">
-          <div class="chart-container chart-h600">
-            <canvas id="chart-pavimento-sabara"></canvas>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div><!-- /tab-1 -->
-
-  <!-- ==========================================
-       ABA 03 — SABARÁ
-       ========================================== -->
-  <div class="tab-content" id="tab-2">
-
-    <div id="empty-state-2" class="empty-state">
-      <div class="empty-icon">📂</div>
-      <div class="empty-title" data-i18n="empty-title">Importe um arquivo para visualizar o dashboard</div>
-      <div class="empty-sub" data-i18n="empty-sub">Formatos aceitos: .csv e .xlsx</div>
-    </div>
-
-    <div id="content-tab-2" style="display:none;">
-
-      <!-- 1. EVOLUÇÃO SEMANAL -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-semanal-p">1 – Evolução Semanal (Sabará)</div>
-          <div class="section-badge">COMBINAÇÃO</div>
-        </div>
-        <div class="card">
-          <div class="chart-container chart-h400">
-            <canvas id="chart-semanal-platz"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. EVOLUÇÃO MENSAL -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-mensal-p">2 – Evolução Mensal (Sabará)</div>
-          <div class="section-badge">COMBINAÇÃO</div>
-        </div>
-        <div class="card">
-          <div style="overflow-x:auto;">
-            <div class="chart-container chart-h400" style="min-width:900px;">
-              <canvas id="chart-mensal-platz"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. EVOLUÇÃO POR PAVIMENTO -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title" data-i18n="sec-pav-p">3 – Evolução por Pavimento (Sabará)</div>
-          <div class="section-badge">BARRAS</div>
-        </div>
-        <div class="card">
-          <div class="chart-container chart-h600">
-            <canvas id="chart-pavimento-platz"></canvas>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div><!-- /tab-2 -->
-
-</div><!-- /main-content -->
-
-<!-- Toast container -->
-<div class="toast-container" id="toast-container"></div>
-
-<!-- ============================================
-     JAVASCRIPT PRINCIPAL
-     ============================================ -->
 <script>
-/* ================================================
-   ESTADO GLOBAL DO DASHBOARD
-   ================================================ */
-const STATE = {
-  sheets: {},          // dados por aba (sheet name -> array of rows)
-  sheetNames: [],      // nomes das abas originais
-  merges: {},          // informações de mesclagem por aba (nome -> array de {s,e})
-  fileName: '',        // nome do arquivo carregado
-  language: 'pt',     // idioma ativo
-  chartInstances: {},  // instâncias Chart.js ativas (para destruir antes de recriar)
-  currentTab: 0,       // aba ativa
+/* ==================================================================
+   ================  CONFIGURAÇÃO DE FONTE DE DADOS  ================
+
+   FONTE: arquivo .xlsx único, com 2 abas (planilhas internas), lido
+   diretamente no navegador via SheetJS (sem backend).
+
+   ⚠️ LIMITAÇÃO TÉCNICA IMPORTANTE — LEIA ANTES DE PUBLICAR NO GITHUB:
+   O link do SharePoint informado é um link de VISUALIZAÇÃO
+   (sharepoint.com/:x:/g/personal/...), não um endpoint de download
+   direto. Ele normalmente exige login da conta Microsoft e, mesmo
+   quando compartilhado como "qualquer pessoa com o link", o SharePoint
+   não libera cabeçalhos CORS para domínios externos (como
+   flaviogusman.github.io). Ou seja: um fetch() feito a partir do
+   GitHub Pages para esse link tende a falhar por CORS/autenticação —
+   isso não é uma limitação do código, é uma restrição do próprio
+   SharePoint. Este dashboard trata esse cenário com uma mensagem de
+   erro amigável (não quebra a página), mas para funcionar de forma
+   confiável em produção há 2 caminhos:
+
+   OPÇÃO A (recomendada) — Hospedar o .xlsx dentro do próprio
+   repositório GitHub (ex.: /data/obra.xlsx) e referenciar por caminho
+   relativo. Isso elimina CORS porque o arquivo passa a ser do mesmo
+   domínio do GitHub Pages. Basta atualizar o .xlsx no repositório
+   sempre que a planilha original mudar (manual, ou via um Action que
+   sincronize periodicamente).
+
+   OPÇÃO B — Publicar a planilha como CSV via Google Sheets (como nas
+   versões anteriores deste dashboard), que oferece um link público
+   com CORS liberado e atualização automática ao abrir a página.
+
+   O código abaixo tenta primeiro XLSX_URL (link configurado); se
+   falhar, tenta XLSX_URL_FALLBACK (caminho local no repositório).
+   Ajuste os valores conforme a opção escolhida.
+   ================================================================== */
+const XLSX_URL = "https://sdidesenvolvimentoimobilari-my.sharepoint.com/:x:/g/personal/flavio_gusman_sdiweb_com_br/IQCpfCAlIEtmQLAVMpfdIHR-Acusf4wF4SPBPHztXZMqtCw?e=e2cWDG"; // <-- link informado (ver limitação acima)
+const XLSX_URL_FALLBACK = "./data/Sabara_Platz.xlsx"; // <-- OPÇÃO A: caminho relativo dentro do repositório github.com/Flaviogusman/obras
+
+// Nomes (ou índices) das abas dentro do arquivo .xlsx que correspondem
+// à Aba 01 e Aba 02 do dashboard. Por padrão usa as duas primeiras
+// planilhas do arquivo, na ordem em que aparecem no workbook.
+const SHEET_SELECTOR = { aba1: 0, aba2: 1 }; // índice (0-based) ou string com o nome exato da aba
+/* ================================================================== */
+/* ================================================================== */
+
+// Paleta de cores usada nos gráficos (tons corporativos de BI)
+const PALETTE = {
+  steel:'#2A5CDB', teal:'#0EA5A0', amber:'#F0A50B', rose:'#E23A5E',
+  violet:'#7C5CFC', navy:'#0F1F3D', slate:'#647089', mint:'#39C4B6'
 };
-
-/* ================================================
-   PALETA DE CORES PARA GRÁFICOS
-   (extraída das variáveis CSS para consistência com tema)
-   ================================================ */
-function getChartColors() {
-  const style = getComputedStyle(document.documentElement);
-  return [
-    style.getPropertyValue('--chart-1').trim() || '#2563EB',
-    style.getPropertyValue('--chart-2').trim() || '#F59E0B',
-    style.getPropertyValue('--chart-3').trim() || '#10B981',
-    style.getPropertyValue('--chart-4').trim() || '#EF4444',
-    style.getPropertyValue('--chart-5').trim() || '#8B5CF6',
-    style.getPropertyValue('--chart-6').trim() || '#06B6D4',
-  ];
-}
-
-function hexToRgba(hex, alpha) {
-  const h = hex.replace('#','');
-  const r = parseInt(h.substring(0,2),16);
-  const g = parseInt(h.substring(2,4),16);
-  const b = parseInt(h.substring(4,6),16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-/* ================================================
-   TROCA DE TEMA
-   ================================================ */
-function setTheme(theme) {
-  document.body.setAttribute('data-theme', theme);
-  // Recriar gráficos para atualizar cores
-  setTimeout(() => { if (STATE.fileName) renderAllCharts(); }, 100);
-}
-
-/* ================================================
-   TROCA DE ABA
-   ================================================ */
-function switchTab(idx) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`tab-${idx}`).classList.add('active');
-  document.getElementById(`tab-btn-${idx}`).classList.add('active');
-  STATE.currentTab = idx;
-}
-
-/* ================================================
-   UPLOAD DE ARQUIVO (CSV ou XLSX)
-   ================================================ */
-function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  STATE.fileName = file.name;
-  document.getElementById('file-name').textContent = `📄 ${file.name}`;
-  document.getElementById('dashboard-subtitle').textContent = file.name.replace(/\.(csv|xlsx|xls)$/i,'').toUpperCase();
-
-  const ext = file.name.split('.').pop().toLowerCase();
-
-  if (ext === 'csv') {
-    readCSV(file);
-  } else if (ext === 'xlsx' || ext === 'xls') {
-    readXLSX(file);
-  } else {
-    showToast('Formato não suportado. Use CSV ou XLSX.', 'error');
-  }
-}
-
-/* ================================================
-   LEITURA DE CSV
-   ================================================ */
-function readCSV(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const text = e.target.result;
-      const rows = parseCSV(text);
-      if (!rows || rows.length < 2) throw new Error('CSV vazio ou inválido');
-
-      // CSV → trata como uma única aba
-      STATE.sheets = { 'Planilha1': rows };
-      STATE.sheetNames = ['Planilha1'];
-      updateTabNames(['Planilha1']);
-      updateTimestamp();
-      renderAllCharts();
-      showToast(`Arquivo carregado com sucesso! (${rows.length - 1} linhas)`, 'success');
-    } catch(err) {
-      showToast('Erro ao ler CSV: ' + err.message, 'error');
-    }
-  };
-  reader.readAsText(file, 'UTF-8');
-}
-
-function parseCSV(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  return lines.map(line => {
-    // Suporte a campos com aspas
-    const cols = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') { inQ = !inQ; }
-      else if ((c === ',' || c === ';') && !inQ) { cols.push(cur.trim()); cur = ''; }
-      else { cur += c; }
-    }
-    cols.push(cur.trim());
-    return cols;
-  });
-}
-
-/* ================================================
-   LEITURA DE XLSX
-   ================================================ */
-function readXLSX(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: 'array', cellDates: true, cellText: false });
-
-      STATE.sheets = {};
-      STATE.sheetNames = wb.SheetNames;
-      STATE.merges = {};   // armazena merges por aba para renderizar células mescladas
-
-      wb.SheetNames.forEach(name => {
-        // Lê como array de arrays; SheetJS preenche células mescladas com o valor da célula-mestre
-        const ws = wb.Sheets[name];
-        const raw = XLSX.utils.sheet_to_json(ws, {
-          header: 1,
-          defval: '',
-          raw: false,         // converte datas para string
-          dateNF: 'dd/mm/yyyy'
-        });
-        STATE.sheets[name] = raw;
-
-        // Captura informações de mesclagem (array de objetos {s:{r,c}, e:{r,c}})
-        STATE.merges[name] = ws['!merges'] || [];
-      });
-
-      updateTabNames(wb.SheetNames);
-      updateTimestamp();
-      renderAllCharts();
-      showToast(`Arquivo XLSX carregado! ${wb.SheetNames.length} aba(s) encontrada(s).`, 'success');
-    } catch(err) {
-      showToast('Erro ao ler XLSX: ' + err.message, 'error');
-      console.error(err);
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-/* ================================================
-   ATUALIZA NOMES DAS ABAS NA INTERFACE
-   ================================================ */
-function updateTabNames(names) {
-  const labels = [
-    `📋 ${names[0] || 'ABA 01'}`,
-    `📈 ${names[1] || 'ABA 02'}`,
-    `📊 ${names[2] || 'ABA 03'}`,
-  ];
-  labels.forEach((label, i) => {
-    const btn = document.getElementById(`tab-btn-${i}`);
-    if (btn) btn.textContent = label;
-  });
-}
-
-/* ================================================
-   TIMESTAMP
-   ================================================ */
-function updateTimestamp() {
-  const now = new Date();
-  document.getElementById('last-update-time').textContent =
-    now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
-}
-
-/* ================================================
-   BOTÃO ATUALIZAR (anti-cache via timestamp)
-   ================================================ */
-function refreshData() {
-  const input = document.getElementById('file-input');
-  if (input.files && input.files[0]) {
-    handleFileUpload({ target: input });
-  } else {
-    showToast('Nenhum arquivo carregado para atualizar.', 'info');
-  }
-}
-
-/* ================================================
-   RENDERIZAÇÃO DE TODOS OS GRÁFICOS
-   ================================================ */
-function renderAllCharts() {
-  const names = STATE.sheetNames;
-
-  // Mostra conteúdo e esconde empty states
-  [0, 1, 2].forEach(i => {
-    const empty = document.getElementById(`empty-state-${i}`);
-    const content = document.getElementById(`content-tab-${i}`);
-    if (empty) empty.style.display = 'none';
-    if (content) content.style.display = 'block';
-  });
-
-  // ABA 01 – usa primeira aba do arquivo
-  if (names[0]) {
-    const sheet0 = STATE.sheets[names[0]];
-    renderAba01(sheet0);
-  }
-
-  // ABA 02 – usa segunda aba
-  if (names[1]) {
-    const sheet1 = STATE.sheets[names[1]];
-    renderAba02(sheet1);
-  }
-
-  // ABA 03 – usa terceira aba
-  if (names[2]) {
-    const sheet2 = STATE.sheets[names[2]];
-    renderAba03(sheet2);
-  }
-}
-
-/* ================================================
-   HELPERS PARA LEITURA DE CÉLULAS
-   ================================================ */
-// Retorna valor de célula [row][col] de um sheet (0-indexed)
-function cell(sheet, row, col) {
-  if (!sheet || !sheet[row]) return '';
-  return sheet[row][col] ?? '';
-}
-
-// Converte para número, retorna 0 se inválido
-function toNum(val) {
-  if (val === null || val === undefined || val === '') return 0;
-  const s = String(val).replace(',', '.').replace('%', '').trim();
-  const n = parseFloat(s);
-  return isNaN(n) ? 0 : n;
-}
-
-// Verifica se linha está vazia
-function isEmptyRow(row) {
-  return !row || row.every(c => c === '' || c === null || c === undefined);
-}
-
-// Formata como % string
-function fmtPct(val) {
-  const n = toNum(val);
-  return n.toFixed(1) + '%';
-}
-
-// Formata moeda BRL
-function fmtBRL(val) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(toNum(val));
-}
-
-/* ================================================
-   HELPER: formatMesAno
-   Converte qualquer representação de mês/ano para "mmm/aa"
-   Suporta: Date do JS, serial Excel (número), string "mm/yyyy",
-            string "Jan/2025", string "2025-01", etc.
-   ================================================ */
-function formatMesAno(val) {
-  if (!val || String(val).trim() === '') return '';
-
-  const mesesPt = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  const mesesEn = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-  const s = String(val).trim();
-
-  // 1. Número serial do Excel (ex: 45292)
-  const num = parseFloat(s.replace(',','.'));
-  if (!isNaN(num) && num > 1 && num < 100000 && s === String(Math.round(num))) {
-    // Converte serial Excel para Date (base 1900, com bug do ano bissexto do Lotus)
-    const d = new Date(Math.round((num - 25569) * 86400 * 1000));
-    if (!isNaN(d.getTime())) {
-      return mesesPt[d.getUTCMonth()] + '/' + String(d.getUTCFullYear()).slice(-2);
-    }
-  }
-
-  // 2. Date object serializado pelo SheetJS: "mm/dd/yyyy" ou "dd/mm/yyyy"
-  const matchDMY = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (matchDMY) {
-    const mes = parseInt(matchDMY[2]) - 1;  // assume dd/mm/yyyy
-    const ano = matchDMY[3];
-    if (mes >= 0 && mes < 12) return mesesPt[mes] + '/' + ano.slice(-2);
-  }
-
-  // 3. "yyyy-mm" ou "mm-yyyy"
-  const matchYM = s.match(/^(\d{4})-(\d{1,2})$/);
-  if (matchYM) {
-    const mes = parseInt(matchYM[2]) - 1;
-    const ano = matchYM[1];
-    if (mes >= 0 && mes < 12) return mesesPt[mes] + '/' + ano.slice(-2);
-  }
-  const matchMY = s.match(/^(\d{1,2})-(\d{4})$/);
-  if (matchMY) {
-    const mes = parseInt(matchMY[1]) - 1;
-    const ano = matchMY[2];
-    if (mes >= 0 && mes < 12) return mesesPt[mes] + '/' + ano.slice(-2);
-  }
-
-  // 4. "mm/yyyy" ou "m/yyyy"
-  const matchMSlY = s.match(/^(\d{1,2})\/(\d{4})$/);
-  if (matchMSlY) {
-    const mes = parseInt(matchMSlY[1]) - 1;
-    const ano = matchMSlY[2];
-    if (mes >= 0 && mes < 12) return mesesPt[mes] + '/' + ano.slice(-2);
-  }
-
-  // 5. "Jan/2025", "Janeiro/2025", "January/2025" etc.
-  const matchTextY = s.match(/^([a-záêçõàü]+)[\/\-\s](\d{2,4})$/i);
-  if (matchTextY) {
-    const mesStr = matchTextY[1].toLowerCase().slice(0, 3);
-    const ano = matchTextY[2].length === 2 ? matchTextY[2] : matchTextY[2].slice(-2);
-    const idxPt = mesesPt.indexOf(mesStr);
-    const idxEn = mesesEn.indexOf(mesStr);
-    if (idxPt >= 0) return mesesPt[idxPt] + '/' + ano;
-    if (idxEn >= 0) return mesesPt[idxEn] + '/' + ano;
-  }
-
-  // 6. Já está no formato "mmm/aa" → retorna como está
-  const matchShort = s.match(/^([a-záêçõàü]{3})\/(\d{2})$/i);
-  if (matchShort) return s.toLowerCase();
-
-  // 7. Fallback: retorna o valor original truncado se for muito longo
-  return s.length > 8 ? s.slice(0, 8) : s;
-}
-
-/* ================================================
-   ABA 01 — PRAZOS CONTRATUAIS (linhas 2-10, colunas A-G)
-   Índice 0-based: linhas 1-9, colunas 0-6
-   ================================================ */
-function renderAba01(sheet) {
-  if (!sheet) return;
-
-  // --- TABELA PRAZOS (linhas 1 a 9, colunas 0 a 6) ---
-  renderTabelaPrazos(sheet);
-
-  // --- STATUS FÍSICO ---
-  // Geral: A15=sheet[14][0], B15=sheet[14][1], D15=sheet[14][3]
-  const geralPrev = toNum(cell(sheet, 14, 0));
-  const geralReal = toNum(cell(sheet, 14, 1));
-  const geralDevP = geralReal - geralPrev;
-  const geralDevD = toNum(cell(sheet, 14, 3));
-
-  renderDonut('donut-geral-prev', geralPrev, 'val-geral-prev');
-  renderDonut('donut-geral-real', geralReal, 'val-geral-real');
-  setKpiPill('kpi-geral-devp', geralDevP.toFixed(1) + '%', geralDevP);
-  setKpiPill('kpi-geral-devd', geralDevD + 'd', geralDevD);
-
-  // Sabará: A18, B18, D18
-  const sabaraPrev = toNum(cell(sheet, 17, 0));
-  const sabaraReal = toNum(cell(sheet, 17, 1));
-  const sabaraDevP = sabaraReal - sabaraPrev;
-  const sabaraDevD = toNum(cell(sheet, 17, 3));
-
-  renderDonut('donut-sabara-prev', sabaraPrev, 'val-sabara-prev');
-  renderDonut('donut-sabara-real', sabaraReal, 'val-sabara-real');
-  setKpiPill('kpi-sabara-devp', sabaraDevP.toFixed(1) + '%', sabaraDevP);
-  setKpiPill('kpi-sabara-devd', sabaraDevD + 'd', sabaraDevD);
-
-  // Platz: A21, B21, D21
-  const platzPrev = toNum(cell(sheet, 20, 0));
-  const platzReal = toNum(cell(sheet, 20, 1));
-  const platzDevP = platzReal - platzPrev;
-  const platzDevD = toNum(cell(sheet, 20, 3));
-
-  renderDonut('donut-platz-prev', platzPrev, 'val-platz-prev');
-  renderDonut('donut-platz-real', platzReal, 'val-platz-real');
-  setKpiPill('kpi-platz-devp', platzDevP.toFixed(1) + '%', platzDevP);
-  setKpiPill('kpi-platz-devd', platzDevD + 'd', platzDevD);
-
-  // --- STATUS FINANCEIRO (linhas 24-28 = índices 23-27, colunas A-D = 0-3) ---
-  renderStatusFinanceiro(sheet);
-
-  // --- EFETIVO DE OBRA (linhas 31-33 = índices 30-32, colunas A-B = 0-1) ---
-  renderEfetivo(sheet);
-}
-
-/* ================================================
-   TABELA PRAZOS CONTRATUAIS — com mesclagem de células
-   Lê STATE.merges para aplicar colspan/rowspan corretos
-   ================================================ */
-function renderTabelaPrazos(sheet) {
-  const header = document.getElementById('prazos-header');
-  const body   = document.getElementById('prazos-body');
-  header.innerHTML = '';
-  body.innerHTML   = '';
-
-  // Intervalo de linhas e colunas (0-based): linhas 1-9, colunas 0-6
-  const ROW_START = 1, ROW_END = 9, COL_START = 0, COL_END = 6;
-
-  // Obtém merges da primeira aba
-  const sheetName = STATE.sheetNames[0];
-  const rawMerges = (sheetName && STATE.merges[sheetName]) || [];
-
-  // Constrói mapa de células a ignorar (já cobertas por um merge) e spans a aplicar
-  // Chave: "r_c" → { colspan, rowspan } para a célula-mestre
-  // Células submersas ficam marcadas como skip=true
-  const spanMap  = {};   // "r_c" → {colspan, rowspan}
-  const skipSet  = new Set(); // "r_c" → deve ser omitida
-
-  rawMerges.forEach(m => {
-    const { s, e } = m;
-    // Somente merges dentro do intervalo de interesse
-    if (s.r > ROW_END || e.r < ROW_START || s.c > COL_END || e.c < COL_START) return;
-
-    const colspan = (e.c - s.c) + 1;
-    const rowspan = (e.r - s.r) + 1;
-    spanMap[`${s.r}_${s.c}`] = { colspan, rowspan };
-
-    // Marca todas as células cobertas exceto a mestre como skip
-    for (let r = s.r; r <= e.r; r++) {
-      for (let c = s.c; c <= e.c; c++) {
-        if (r === s.r && c === s.c) continue; // a mestre não é skip
-        skipSet.add(`${r}_${c}`);
-      }
-    }
-  });
-
-  // Renderiza linha a linha
-  // Detecta índice da coluna "Data Atualizada" no cabeçalho (ROW_START)
-  // para aplicar negrito em todas as células daquela coluna nas linhas de dados
-  const headerRowData = sheet[ROW_START] || [];
-  let colDataAtualizada = -1;
-
-  // Ajuste 1: Detecta colunas que devem ser centralizadas:
-  // DATA, DIAS DE CHUVA, DATA ATUALIZADA, PRAZO (MESES)
-  const colsCentralizar = new Set();
-  for (let c = COL_START; c <= COL_END; c++) {
-    const val = String(headerRowData[c] || '').toLowerCase().trim();
-    if (
-      val.includes('data')       ||   // DATA e DATA ATUALIZADA
-      val.includes('dias')       ||   // DIAS DE CHUVA
-      val.includes('chuva')      ||   // DIAS DE CHUVA (célula mesclada)
-      val.includes('prazo')      ||   // PRAZO (MESES)
-      val.includes('mes')        ||   // MESES
-      val.includes('mês')
-    ) {
-      colsCentralizar.add(c);
-    }
-    if (val.includes('atualiz') || val.includes('atual')) {
-      colDataAtualizada = c;
-    }
-  }
-
-  for (let r = ROW_START; r <= ROW_END; r++) {
-    const row = sheet[r] || [];
-    if (isEmptyRow(row)) continue;
-
-    // Primeira linha de dados vira cabeçalho (thead); demais vão para tbody
-    const isHeaderRow = (r === ROW_START);
-    const tr = document.createElement('tr');
-
-    for (let c = COL_START; c <= COL_END; c++) {
-      const key = `${r}_${c}`;
-
-      // Célula coberta por mesclagem → pular
-      if (skipSet.has(key)) continue;
-
-      const cell = isHeaderRow ? document.createElement('th') : document.createElement('td');
-      cell.textContent = String(row[c] ?? '');
-
-      // Aplica span se esta célula é mestre de mesclagem
-      if (spanMap[key]) {
-        const { colspan, rowspan } = spanMap[key];
-        if (colspan > 1) cell.colSpan = colspan;
-        if (rowspan > 1) cell.rowSpan = rowspan;
-        cell.style.fontWeight = '700';
-      }
-
-      // Ajuste 1: centraliza colunas DATA, DIAS DE CHUVA, DATA ATUALIZADA, PRAZO (MESES)
-      if (colsCentralizar.has(c)) {
-        cell.style.textAlign = 'center';
-      }
-
-      // Negrito e cor primária na coluna "Data Atualizada" (linhas de dados)
-      if (!isHeaderRow && c === colDataAtualizada) {
-        cell.style.fontWeight = '700';
-        cell.style.color = 'var(--color-primary)';
-      }
-
-      if (isHeaderRow) {
-        header.appendChild(cell);
-      } else {
-        tr.appendChild(cell);
-      }
-    }
-
-    if (!isHeaderRow) body.appendChild(tr);
-  }
-}
-
-/* ================================================
-   GRÁFICO DE ROSCA
-   ================================================ */
-function renderDonut(canvasId, pct, valElId) {
-  const colors = getChartColors();
-  destroyChart(canvasId);
-
-  const pctSafe = Math.min(Math.max(toNum(pct), 0), 100);
-  document.getElementById(valElId).textContent = pctSafe.toFixed(1) + '%';
-
-  const ctx = document.getElementById(canvasId);
-  if (!ctx) return;
-
-  STATE.chartInstances[canvasId] = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      datasets: [{
-        data: [pctSafe, 100 - pctSafe],
-        backgroundColor: [colors[0], getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim() || '#E2E8F0'],
-        borderWidth: 0,
-        hoverOffset: 0,
-      }]
-    },
-    options: {
-      cutout: '70%',
-      plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      animation: { animateRotate: true, duration: 800 },
-    }
-  });
-}
-
-/* ================================================
-   KPI PILL — positivo/negativo
-   ================================================ */
-function setKpiPill(elId, text, numVal) {
-  const el = document.getElementById(elId);
-  if (!el) return;
-  el.textContent = text;
-  el.className = 'kpi-pill-value ' + (numVal >= 0 ? 'pos' : 'neg');
-}
-
-/* ================================================
-   STATUS FINANCEIRO — barras horizontais agrupadas
-   Linhas 24-28 (índices 23-27), colunas A-D (0-3)
-   ================================================ */
-function renderStatusFinanceiro(sheet) {
-  destroyChart('chart-financeiro');
-  const colors = getChartColors();
-
-  // Lê as 4 linhas de dados (após cabeçalho na 23)
-  // Estrutura esperada: col A = rótulo, B = Geral, C = Sabará, D = Platz
-  const labels = ['Geral', 'Sabará', 'Platz'];
-
-  // PMG Reajustado, Faturado, Contratado, A Contratar
-  const groups = [];
-  for (let r = 24; r <= 27; r++) {
-    const row = sheet[r] || [];
-    groups.push({
-      label: row[0] || `Grupo ${r - 23}`,
-      geral:  toNum(row[1]),
-      sabara: toNum(row[2]),
-      platz:  toNum(row[3]),
-    });
-  }
-
-  if (groups.length === 0) return;
-
-  // Monta datasets — um por linha de grupo (PMG, Faturado, Contratado, A Contratar)
-  const datasets = groups.map((g, i) => ({
-    label: g.label,
-    data: [g.geral, g.sabara, g.platz],
-    backgroundColor: hexToRgba(colors[i % colors.length], 0.85),
-    borderColor: colors[i % colors.length],
-    borderWidth: 1.5,
-    borderRadius: 4,
-  }));
-
-  const ctx = document.getElementById('chart-financeiro');
-  if (!ctx) return;
-
-  // Plugin inline para desenhar rótulos dentro/fora das barras horizontais
-  const barLabelPlugin = {
-    id: 'barLabelsFinanceiro',
-    afterDatasetsDraw(chart) {
-      const { ctx: c, scales: { x } } = chart;
-      chart.data.datasets.forEach((dataset, dIdx) => {
-        const meta = chart.getDatasetMeta(dIdx);
-        meta.data.forEach((bar, i) => {
-          const val = dataset.data[i];
-          if (!val) return;
-          const text = fmtBRL(val);
-          c.save();
-          c.font = 'bold 10px Segoe UI, sans-serif';
-          c.fillStyle = '#FFFFFF';
-          c.textAlign = 'center';
-          c.textBaseline = 'middle';
-          const barW = bar.width || 0;
-          const textW = c.measureText(text).width;
-          // Se a barra for larga o suficiente, escreve dentro; senão fora
-          if (barW > textW + 8) {
-            c.fillText(text, bar.x - barW / 2 + textW / 2 + 4, bar.y);
-          } else {
-            c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
-            c.textAlign = 'left';
-            c.fillText(text, bar.x + 4, bar.y);
-          }
-          c.restore();
-        });
-      });
-    }
-  };
-
-  STATE.chartInstances['chart-financeiro'] = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets },
-    plugins: [barLabelPlugin],
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top', labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim(), font: { weight: '600', size: 11 } } },
-        tooltip: { callbacks: {
-          label: ctx => ` ${ctx.dataset.label}: ${fmtBRL(ctx.raw)}`
-        }},
-        datalabels: { display: false }
-      },
-      scales: {
-        x: {
-          grid: { color: hexToRgba(getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim() || '#E2E8F0', 0.5) },
-          ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim(), callback: v => fmtBRL(v) }
-        },
-        y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim(), font: { weight: '700' } } }
-      }
-    }
-  });
-}
-
-/* ================================================
-   EFETIVO DE OBRA — barras verticais
-   Linhas 31-33 (índices 30-32), colunas A-B (0-1)
-   ================================================ */
-function renderEfetivo(sheet) {
-  destroyChart('chart-efetivo');
-  const colors = getChartColors();
-
-  const labels = [];
-  const values = [];
-
-  for (let r = 30; r <= 32; r++) {
-    const row = sheet[r] || [];
-    if (isEmptyRow(row)) continue;
-    labels.push(String(row[0] || `Item ${r - 29}`));
-    values.push(toNum(row[1]));
-  }
-
-  const ctx = document.getElementById('chart-efetivo');
-  if (!ctx) return;
-
-  // Plugin inline: rótulo no topo de cada coluna (barra vertical)
-  const efetivoLabelPlugin = {
-    id: 'efetivoLabels',
-    afterDatasetsDraw(chart) {
-      const { ctx: c, scales: { y } } = chart;
-      chart.data.datasets.forEach((dataset, dIdx) => {
-        const meta = chart.getDatasetMeta(dIdx);
-        meta.data.forEach((bar, i) => {
-          const val = dataset.data[i];
-          if (val === null || val === undefined || val === 0) return;
-          const text = String(val);
-          c.save();
-          c.font = 'bold 12px Segoe UI, sans-serif';
-          c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
-          c.textAlign = 'center';
-          c.textBaseline = 'bottom';
-          // Posiciona o rótulo ligeiramente acima do topo da barra
-          c.fillText(text, bar.x, bar.y - 4);
-          c.restore();
-        });
-      });
-    }
-  };
-
-  STATE.chartInstances['chart-efetivo'] = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Efetivo',
-        data: values,
-        backgroundColor: colors.slice(0, values.length).map(c => hexToRgba(c, 0.85)),
-        borderColor: colors.slice(0, values.length),
-        borderWidth: 2,
-        borderRadius: 6,
-      }]
-    },
-    plugins: [efetivoLabelPlugin],
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}` } }
-      },
-      scales: {
-        x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim(), font: { weight: '700' } } },
-        y: {
-          ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim() },
-          beginAtZero: true,
-          // Dá espaço no topo para o rótulo não ser cortado
-          grace: '10%'
-        }
-      }
-    }
-  });
-}
-
-/* ================================================
-   ABA 02 — PLATZ (2ª aba do arquivo)
-   ================================================ */
-function renderAba02(sheet) {
-  if (!sheet) return;
-
-  // 1. EVOLUÇÃO SEMANAL (linhas 2-6 = índices 1-5, colunas A-E = 0-4)
-  //    Escala padrão: primário 60-90 (step 5), secundário 0-3 (step 0.5)
-  renderEvolucaoSemanal(sheet, 'chart-semanal-sabara', 1, 5, 0, 4, 60, 90, 5, 0, 3, 0.5);
-
-  // 2. EVOLUÇÃO MENSAL (linhas 9-13 = índices 8-12, colunas A-AL = 0-37)
-  renderEvolucaoMensal(sheet, 'chart-mensal-sabara', 8, 12, 0, 37);
-
-  // 3. EVOLUÇÃO POR PAVIMENTO (linhas 17-55 = índices 16-54, colunas A-C = 0-2)
-  renderEvolucaoPavimento(sheet, 'chart-pavimento-sabara', 16, 54);
-}
-
-/* ================================================
-   ABA 03 — SABARÁ (3ª aba do arquivo)
-   ================================================ */
-function renderAba03(sheet) {
-  if (!sheet) return;
-
-  // 1. EVOLUÇÃO SEMANAL — escala específica conforme ajuste 4:
-  //    Eixo primário (acumulado): 40 a 60, step 5
-  //    Eixo secundário (semanal): 0 a 2, step 0.5
-  renderEvolucaoSemanal(sheet, 'chart-semanal-platz', 1, 5, 0, 4, 40, 60, 5, 0, 2, 0.5);
-
-  // 2. EVOLUÇÃO MENSAL (colunas A-AM = 0-38)
-  renderEvolucaoMensal(sheet, 'chart-mensal-platz', 8, 12, 0, 38);
-
-  // 3. EVOLUÇÃO POR PAVIMENTO (linhas 17-43 = índices 16-42)
-  renderEvolucaoPavimento(sheet, 'chart-pavimento-platz', 16, 42);
-}
-
-/* ================================================
-   GRÁFICO COMBINADO — EVOLUÇÃO SEMANAL
-   Parâmetros de escala configuráveis por chamada:
-     y1Min/y1Max/y1Step → eixo primário (acumulado, linhas)
-     y2Min/y2Max/y2Step → eixo secundário (semanal, barras)
-   Ajuste anterior: células sem valor → null (não plota ponto/barra)
-   ================================================ */
-function renderEvolucaoSemanal(
-  sheet, canvasId, rStart, rEnd, cStart, cEnd,
-  y1Min = 60, y1Max = 90, y1Step = 5,
-  y2Min = 0,  y2Max = 3,  y2Step = 0.5
-) {
-  destroyChart(canvasId);
-  const colors = getChartColors();
-  const textColor   = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
-  const mutedColor  = getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim();
-  const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim();
-
-  // Linha de datas = rStart
-  const headerRow = sheet[rStart] || [];
-  const labels = [];
-  for (let c = cStart + 1; c <= cEnd; c++) {
-    const v = headerRow[c];
-    labels.push(v !== '' && v !== undefined ? String(v) : '');
-  }
-
-  // Retorna array onde célula vazia vira null (não é plotada)
-  function getRowDataNullable(rowIdx) {
-    const row = sheet[rowIdx] || [];
-    const data = [];
-    for (let c = cStart + 1; c <= cEnd; c++) {
-      const raw = row[c];
-      const isEmpty = raw === '' || raw === null || raw === undefined;
-      data.push(isEmpty ? null : toNum(raw));
-    }
-    return data;
-  }
-
-  const semPrev  = getRowDataNullable(rStart + 1);
-  const semReal  = getRowDataNullable(rStart + 2);
-  const acumPrev = getRowDataNullable(rStart + 3);
-  const acumReal = getRowDataNullable(rStart + 4);
-
-  const ctx = document.getElementById(canvasId);
-  if (!ctx) return;
-
-  STATE.chartInstances[canvasId] = new Chart(ctx, {
-    data: {
-      labels,
-      datasets: [
-        {
-          type: 'bar',
-          label: 'Semanal Previsto',
-          data: semPrev,
-          backgroundColor: hexToRgba(colors[0], 0.7),
-          borderColor: colors[0],
-          borderWidth: 1.5,
-          borderRadius: 4,
-          yAxisID: 'y2',
-          order: 2,
-          skipNull: true,
-        },
-        {
-          type: 'bar',
-          label: 'Semanal Realizado',
-          data: semReal,
-          backgroundColor: hexToRgba(colors[1], 0.7),
-          borderColor: colors[1],
-          borderWidth: 1.5,
-          borderRadius: 4,
-          yAxisID: 'y2',
-          order: 2,
-          skipNull: true,
-        },
-        {
-          type: 'line',
-          label: 'Acumulado Previsto',
-          data: acumPrev,
-          borderColor: colors[2],
-          backgroundColor: hexToRgba(colors[2], 0.1),
-          borderWidth: 2.5,
-          pointRadius: 4,
-          tension: 0.3,
-          yAxisID: 'y1',
-          fill: false,
-          order: 1,
-          spanGaps: false,   // não conecta pontos nulos
-        },
-        {
-          type: 'line',
-          label: 'Acumulado Realizado',
-          data: acumReal,
-          borderColor: colors[3],
-          backgroundColor: hexToRgba(colors[3], 0.1),
-          borderWidth: 2.5,
-          pointRadius: 4,
-          tension: 0.3,
-          yAxisID: 'y1',
-          fill: false,
-          order: 1,
-          spanGaps: false,
-        },
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top', labels: { color: textColor, font: { weight: '600', size: 11 } } },
-        tooltip: { mode: 'index', intersect: false },
-      },
-      scales: {
-        x: {
-          grid: { color: hexToRgba(borderColor, 0.5) },
-          ticks: { color: textColor, font: { weight: '600' }, maxRotation: 45 }
-        },
-        y1: {
-          type: 'linear',
-          position: 'left',
-          min: y1Min, max: y1Max,
-          grid: { color: hexToRgba(borderColor, 0.5) },
-          ticks: { color: textColor, stepSize: y1Step, callback: v => v + '%' },
-          title: { display: true, text: 'Acumulado (%)', color: mutedColor }
-        },
-        y2: {
-          type: 'linear',
-          position: 'right',
-          min: y2Min, max: y2Max,
-          grid: { drawOnChartArea: false },
-          ticks: { color: mutedColor, stepSize: y2Step, callback: v => v + '%' },
-          title: { display: true, text: 'Semanal (%)', color: mutedColor }
-        }
-      }
-    }
-  });
-}
-
-/* ================================================
-   GRÁFICO COMBINADO — EVOLUÇÃO MENSAL
-   Ajuste 4: células sem valor → null (não plota ponto/barra)
-   Ajuste 3: eixo X exibe apenas MÊS/ANO (ex: jan/25)
-   ================================================ */
-function renderEvolucaoMensal(sheet, canvasId, rStart, rEnd, cStart, cEnd) {
-  destroyChart(canvasId);
-  const colors = getChartColors();
-  const textColor   = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
-  const mutedColor  = getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim();
-  const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim();
-
-  const headerRow = sheet[rStart] || [];
-  const labels = [];
-  for (let c = cStart + 1; c <= cEnd; c++) {
-    const v = headerRow[c];
-    // Normaliza cada label para MÊS/ANO usando helper formatMesAno
-    labels.push(v !== '' && v !== undefined ? formatMesAno(String(v)) : '');
-  }
-
-  // Retorna null para células vazias
-  function getRowDataNullable(rowIdx) {
-    const row = sheet[rowIdx] || [];
-    const data = [];
-    for (let c = cStart + 1; c <= cEnd; c++) {
-      const raw = row[c];
-      const isEmpty = raw === '' || raw === null || raw === undefined;
-      data.push(isEmpty ? null : toNum(raw));
-    }
-    return data;
-  }
-
-  const mensPrev = getRowDataNullable(rStart + 1);
-  const mensReal = getRowDataNullable(rStart + 2);
-  const acumPrev = getRowDataNullable(rStart + 3);
-  const acumReal = getRowDataNullable(rStart + 4);
-
-  const ctx = document.getElementById(canvasId);
-  if (!ctx) return;
-
-  STATE.chartInstances[canvasId] = new Chart(ctx, {
-    data: {
-      labels,
-      datasets: [
-        {
-          type: 'bar', label: 'Mensal Previsto', data: mensPrev,
-          backgroundColor: hexToRgba(colors[0], 0.7), borderColor: colors[0],
-          borderWidth: 1.5, borderRadius: 3, yAxisID: 'y2', order: 2, skipNull: true,
-        },
-        {
-          type: 'bar', label: 'Mensal Realizado', data: mensReal,
-          backgroundColor: hexToRgba(colors[1], 0.7), borderColor: colors[1],
-          borderWidth: 1.5, borderRadius: 3, yAxisID: 'y2', order: 2, skipNull: true,
-        },
-        {
-          type: 'line', label: 'Acumulado Previsto', data: acumPrev,
-          borderColor: colors[2], borderWidth: 2.5, pointRadius: 3, tension: 0.3,
-          yAxisID: 'y1', fill: false, order: 1, spanGaps: false,
-        },
-        {
-          type: 'line', label: 'Acumulado Realizado', data: acumReal,
-          borderColor: colors[3], borderWidth: 2.5, pointRadius: 3, tension: 0.3,
-          yAxisID: 'y1', fill: false, order: 1, spanGaps: false,
-        },
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top', labels: { color: textColor, font: { weight: '600', size: 11 } } },
-        tooltip: { mode: 'index', intersect: false },
-      },
-      scales: {
-        x: {
-          grid: { color: hexToRgba(borderColor, 0.5) },
-          ticks: {
-            color: textColor,
-            maxRotation: 60,
-            minRotation: 45,
-            font: { size: 10, weight: '600' },
-            // Garante que o valor exibido já está no formato MÊS/ANO
-            // (os labels já foram normalizados, este callback apenas repassa)
-            callback: function(val, idx) {
-              return this.getLabelForValue(idx);
-            }
-          }
-        },
-        y1: {
-          type: 'linear', position: 'left',
-          min: 0, max: 100,
-          grid: { color: hexToRgba(borderColor, 0.5) },
-          ticks: { color: textColor, stepSize: 10, callback: v => v + '%' },
-          title: { display: true, text: 'Acumulado (%)', color: mutedColor }
-        },
-        y2: {
-          type: 'linear', position: 'right',
-          min: 0, max: 10,
-          grid: { drawOnChartArea: false },
-          ticks: { color: mutedColor, stepSize: 1, callback: v => v + '%' },
-          title: { display: true, text: 'Mensal (%)', color: mutedColor }
-        }
-      }
-    }
-  });
-}
-
-/* ================================================
-   GRÁFICO DE BARRAS — EVOLUÇÃO POR PAVIMENTO
-   Ajuste 5: apenas Realizado (sem Previsto); rótulos no meio das barras
-   Linhas rStart-rEnd (índices), Col A = Pavimento, Col C = Realizado (índice 2)
-   ================================================ */
-function renderEvolucaoPavimento(sheet, canvasId, rStart, rEnd) {
-  destroyChart(canvasId);
-  const colors      = getChartColors();
-  const textColor   = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
-  const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim();
-
-  const labels = [], realData = [];
-
-  for (let r = rStart + 1; r <= rEnd; r++) {  // +1 pula cabeçalho
-    const row = sheet[r] || [];
-    if (isEmptyRow(row)) continue;
-    const pav = String(row[0] || '').trim();
-    if (!pav) continue;
-    labels.push(pav);
-    realData.push(toNum(row[2]));  // col C = Realizado
-  }
-
-  const ctx = document.getElementById(canvasId);
-  if (!ctx) return;
-
-  // Altura dinâmica: 40px por barra mínimo
-  const barH = Math.max(labels.length * 44, 300);
-  ctx.parentElement.style.height = barH + 'px';
-
-  // Plugin para rótulos no centro de cada barra horizontal
-  const centerLabelPlugin = {
-    id: 'centerLabelsPavimento',
-    afterDatasetsDraw(chart) {
-      const { ctx: c } = chart;
-      chart.data.datasets.forEach((dataset, dIdx) => {
-        const meta = chart.getDatasetMeta(dIdx);
-        meta.data.forEach((bar, i) => {
-          const val = dataset.data[i];
-          if (!val) return;
-          const text = val.toFixed(1) + '%';
-          c.save();
-          c.font = 'bold 11px Segoe UI, sans-serif';
-          c.textBaseline = 'middle';
-          c.textAlign = 'center';
-          // Centro horizontal da barra
-          const barStart = chart.scales.x.getPixelForValue(0);
-          const barEnd   = bar.x;
-          const centerX  = (barStart + barEnd) / 2;
-          // Largura da barra longa o suficiente para o texto?
-          const textW = c.measureText(text).width;
-          if ((barEnd - barStart) > textW + 10) {
-            c.fillStyle = '#FFFFFF';
-            c.fillText(text, centerX, bar.y);
-          } else {
-            // Escreve fora da barra à direita
-            c.fillStyle = textColor;
-            c.textAlign = 'left';
-            c.fillText(text, barEnd + 5, bar.y);
-          }
-          c.restore();
-        });
-      });
-    }
-  };
-
-  STATE.chartInstances[canvasId] = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Realizado',
-          data: realData,
-          backgroundColor: hexToRgba(colors[1], 0.88),
-          borderColor: colors[1],
-          borderWidth: 1.5,
-          borderRadius: 4,
-          barThickness: 26,    // espessura fixa para barras bem visíveis
-        }
-      ]
-    },
-    plugins: [centerLabelPlugin],
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },  // sem Previsto, legenda desnecessária
-        tooltip: { callbacks: { label: ctx => ` Realizado: ${ctx.raw.toFixed(1)}%` } },
-      },
-      scales: {
-        x: {
-          min: 0, max: 100,
-          grid: { color: hexToRgba(borderColor, 0.5) },
-          ticks: { color: textColor, callback: v => v + '%' }
-        },
-        y: {
-          ticks: {
-            color: textColor,
-            font: { weight: '700', size: 11 },
-          },
-          grid: { color: hexToRgba(borderColor, 0.3) }
-        }
-      }
-    }
-  });
-}
-
-/* ================================================
-   DESTRUIR CHART EXISTENTE (para não duplicar)
-   ================================================ */
-function destroyChart(id) {
-  if (STATE.chartInstances[id]) {
-    STATE.chartInstances[id].destroy();
-    delete STATE.chartInstances[id];
-  }
-}
-
-/* ================================================
-   EXPORTAÇÃO EM PDF (via html2canvas + jsPDF)
-   ================================================ */
-async function exportPDF() {
-  showToast('Gerando PDF... aguarde.', 'info');
-  try {
-    const { jsPDF } = window.jspdf;
-    const content = document.getElementById('pdf-content');
-    const canvas = await html2canvas(content, { scale: 1.5, useCORS: true, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-page').trim() });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
-    const pW = pdf.internal.pageSize.getWidth();
-    const pH = pdf.internal.pageSize.getHeight();
-    const ratio = canvas.width / canvas.height;
-    let w = pW, h = pW / ratio;
-    if (h > pH) { h = pH; w = pH * ratio; }
-    pdf.addImage(imgData, 'PNG', 0, 0, w, h);
-    pdf.save('relatorio-sabara-platz.pdf');
-    showToast('PDF exportado com sucesso!', 'success');
-  } catch(e) {
-    showToast('Erro ao gerar PDF: ' + e.message, 'error');
-  }
-}
-
-/* ================================================
-   TRADUÇÃO (PT ↔ EN)
-   ================================================ */
-const TRANSLATIONS = {
-  pt: {
-    'empty-title': 'Importe um arquivo para visualizar o dashboard',
-    'empty-sub': 'Formatos aceitos: .csv e .xlsx — Os gráficos serão gerados automaticamente',
-    'sec-prazos': '1 – Prazos Contratuais',
-    'sec-fisico': '2 – Status Físico',
-    'sec-financeiro': '3 – Status Financeiro',
-    'sec-efetivo': '4 – Efetivo de Obra',
-    'sec-semanal-s': '1 – Evolução Semanal (Platz)',
-    'sec-mensal-s': '2 – Evolução Mensal (Platz)',
-    'sec-pav-s': '3 – Evolução por Pavimento (Platz)',
-    'sec-semanal-p': '1 – Evolução Semanal (Sabará)',
-    'sec-mensal-p': '2 – Evolução Mensal (Sabará)',
-    'sec-pav-p': '3 – Evolução por Pavimento (Sabará)',
-    'lang-btn': '🌐 ENGLISH',
+const SERIES_COLORS = [PALETTE.steel, PALETTE.teal, PALETTE.amber, PALETTE.rose, PALETTE.violet, PALETTE.slate];
+
+Chart.register(ChartDataLabels);
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.color = '#47526B';
+
+/* ==================================================================
+   MAPA DE FAIXAS DE CÉLULAS POR ABA (conforme especificação recebida)
+   Linhas/colunas usam a MESMA numeração da planilha original.
+   Ajuste aqui caso a estrutura da planilha mude.
+   ================================================================== */
+const RANGE_CONFIG = {
+  aba1: {
+    prazos:        { r1:2,  r2:4,   c1:'A', c2:'D' },
+    fisico:        { previstoCell:['A',9], realizadoCell:['B',9], desvioDiasCell:['D',9] },
+    financeiro:    { r1:12, r2:16,  c1:'A', c2:'C' },
+    suprimentos:   { contratadoCell:['B',19], aContratarCell:['B',20] },
+    proxContrat:   { r1:23, r2:29,  c1:'A', c2:'C' },
+    efetivo:       { r1:32, r2:48,  c1:'A', c2:'B' },
+    semanal:       { r1:51, r2:55,  c1:'A', c2:'E' },
+    mensal:        { r1:58, r2:62,  c1:'A', c2:'AL' },
+    pavimento:     { r1:65, r2:103, c1:'A', c2:'C' },
+    imagens:       { r1:106,r2:199, c1:'A', c2:'N' },
   },
-  en: {
-    'empty-title': 'Import a file to view the dashboard',
-    'empty-sub': 'Accepted formats: .csv and .xlsx — Charts will be generated automatically',
-    'sec-prazos': '1 – Contract Deadlines',
-    'sec-fisico': '2 – Physical Status',
-    'sec-financeiro': '3 – Financial Status',
-    'sec-efetivo': '4 – Site Workforce',
-    'sec-semanal-s': '1 – Weekly Progress (Platz)',
-    'sec-mensal-s': '2 – Monthly Progress (Platz)',
-    'sec-pav-s': '3 – Progress by Floor (Platz)',
-    'sec-semanal-p': '1 – Weekly Progress (Sabará)',
-    'sec-mensal-p': '2 – Monthly Progress (Sabará)',
-    'sec-pav-p': '3 – Progress by Floor (Sabará)',
-    'lang-btn': '🌐 PORTUGUÊS',
+  aba2: {
+    prazos:        { r1:2,  r2:4,   c1:'A', c2:'D' },
+    fisico:        { previstoCell:['A',9], realizadoCell:['B',9], desvioDiasCell:['D',9] },
+    financeiro:    { r1:12, r2:16,  c1:'A', c2:'C' },
+    suprimentos:   { contratadoCell:['B',19], aContratarCell:['B',20] },
+    proxContrat:   { r1:23, r2:34,  c1:'A', c2:'C' },
+    efetivo:       { r1:38, r2:54,  c1:'A', c2:'B' },
+    semanal:       { r1:57, r2:61,  c1:'A', c2:'E' },
+    mensal:        { r1:64, r2:68,  c1:'A', c2:'AQ' },
+    pavimento:     { r1:71, r2:98,  c1:'A', c2:'C' },
+    imagens:       { r1:101,r2:282, c1:'A', c2:'N' },
   }
 };
 
-function toggleLanguage() {
-  STATE.language = STATE.language === 'pt' ? 'en' : 'pt';
+// Estado global da aplicação
+const STATE = {
+  aba1: { grid:null, raw:null, error:null },
+  aba2: { grid:null, raw:null, error:null },
+  activeTab: 'aba1',
+  lang: 'pt',
+  charts: {} // referências Chart.js ativas, por id de canvas
+};
+
+/* ==================================================================
+   3) CARREGAMENTO DOS DADOS
+   Lê o arquivo .xlsx binário (fetch anti-cache) e converte cada aba
+   selecionada em uma "grid" (array de arrays), no mesmo formato que
+   as funções de renderização já esperam — cada célula acessível por
+   letra de coluna + número de linha, igual à planilha original.
+   ================================================================== */
+async function fetchXlsxWorkbook(url){
+  const bustUrl = url + (url.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+  const resp = await fetch(bustUrl, {cache:'no-store'});
+  if(!resp.ok) throw new Error('HTTP ' + resp.status);
+  const buffer = await resp.arrayBuffer();
+  if(!buffer || buffer.byteLength === 0) throw new Error('arquivo vazio');
+  return XLSX.read(buffer, {type:'array', cellDates:false});
+}
+
+// Converte uma planilha (worksheet) do SheetJS em grid de strings,
+// preservando o mesmo formato usado pelo parser de CSV (linha 1 =
+// linha 1 da planilha, célula A1 = grid[0][0], etc.).
+function worksheetToGrid(ws){
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
+  return rows
+    .map(r => r.map(v => (v === null || v === undefined) ? '' : String(v).trim()))
+    .filter(r => r.some(c => c !== ''));
+}
+
+function pickSheet(workbook, selector){
+  if(typeof selector === 'number') return workbook.Sheets[workbook.SheetNames[selector]];
+  return workbook.Sheets[selector] || null;
+}
+
+async function loadWorkbookFromAnySource(){
+  // 1ª tentativa: link configurado (ex.: SharePoint). 2ª tentativa: fallback local no repositório.
+  const attempts = [XLSX_URL, XLSX_URL_FALLBACK].filter(u => u && !u.includes('COLE_AQUI'));
+  let lastError = null;
+  for(const url of attempts){
+    try{
+      const wb = await fetchXlsxWorkbook(url);
+      return { workbook: wb, sourceUrl: url };
+    } catch(e){
+      lastError = e;
+      console.warn('Falha ao carregar XLSX de', url, '-', e.message);
+    }
+  }
+  throw lastError || new Error('nenhuma fonte de dados configurada');
+}
+
+function setStatus(mode, msgKey){
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'dot' + (mode==='loading' ? ' loading' : mode==='error' ? ' err' : '');
+  txt.setAttribute('data-i18n', msgKey);
+  txt.textContent = I18N[STATE.lang][msgKey];
+}
+
+async function refreshAllData(){
+  setStatus('loading', 'statusLoading');
+  try{
+    const { workbook, sourceUrl } = await loadWorkbookFromAnySource();
+    STATE.sourceUrl = sourceUrl;
+
+    const wsAba1 = pickSheet(workbook, SHEET_SELECTOR.aba1);
+    const wsAba2 = pickSheet(workbook, SHEET_SELECTOR.aba2);
+
+    if(wsAba1){ STATE.aba1.grid = worksheetToGrid(wsAba1); STATE.aba1.error = null; }
+    else { STATE.aba1.grid = null; STATE.aba1.error = 'aba 1 não encontrada no arquivo (SHEET_SELECTOR.aba1)'; }
+
+    if(wsAba2){ STATE.aba2.grid = worksheetToGrid(wsAba2); STATE.aba2.error = null; }
+    else { STATE.aba2.grid = null; STATE.aba2.error = 'aba 2 não encontrada no arquivo (SHEET_SELECTOR.aba2)'; }
+
+    const anyErr = STATE.aba1.error || STATE.aba2.error;
+    setStatus(anyErr ? 'loading' : 'ok', anyErr ? 'statusPartial' : 'statusOk');
+
+  } catch(e){
+    // Falha ao ler qualquer fonte configurada (ex.: bloqueio CORS/autenticação do SharePoint).
+    STATE.aba1.grid = null; STATE.aba1.error = e.message;
+    STATE.aba2.grid = null; STATE.aba2.error = e.message;
+    setStatus('error', 'statusError');
+  }
+
+  document.getElementById('lastUpdateTime').textContent = new Date().toLocaleString('pt-BR');
+  renderTabTitles();
+  renderAllTabs();
+}
+function colToIndex(letters){
+  let n = 0;
+  for(const ch of letters.toUpperCase()){
+    n = n*26 + (ch.charCodeAt(0) - 64);
+  }
+  return n - 1;
+}
+
+// Retorna o valor bruto (string) de uma célula, por letra de coluna + linha (1-based)
+function cell(grid, colLetter, rowNum){
+  const r = grid[rowNum-1];
+  if(!r) return '';
+  const idx = colToIndex(colLetter);
+  return (r[idx] !== undefined && r[idx] !== null) ? String(r[idx]).trim() : '';
+}
+
+// Retorna uma sub-matriz [linhas][colunas] dado um intervalo A1-like
+function range(grid, c1, r1, c2, r2){
+  const ci1 = colToIndex(c1), ci2 = colToIndex(c2);
+  const out = [];
+  for(let r=r1; r<=r2; r++){
+    const line = grid[r-1] || [];
+    const rowOut = [];
+    for(let c=ci1; c<=ci2; c++){
+      rowOut.push(line[c] !== undefined ? String(line[c]).trim() : '');
+    }
+    out.push(rowOut);
+  }
+  return out;
+}
+
+/* ==================================================================
+   2) UTILITÁRIOS DE NÚMEROS E DATAS (formatos BR e serial do Sheets)
+   ================================================================== */
+function parseNumberBR(raw){
+  if(raw === null || raw === undefined) return null;
+  let s = String(raw).trim();
+  if(s === '') return null;
+  s = s.replace(/[R$%\s]/g,'');
+  const hasComma = s.includes(','), hasDot = s.includes('.');
+  if(hasComma && hasDot){
+    // 1.234,56 -> formato BR com separador de milhar
+    s = s.replace(/\./g,'').replace(',', '.');
+  } else if(hasComma){
+    s = s.replace(',', '.');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function excelSerialToDate(serial){
+  // Google Sheets/Excel: dia 0 = 30/12/1899
+  const utcDays = Math.floor(serial - 25569);
+  const utcMs = utcDays * 86400 * 1000;
+  return new Date(utcMs);
+}
+
+function parseDateFlexible(raw){
+  if(!raw) return null;
+  const s = String(raw).trim();
+  if(s === '') return null;
+  // dd/mm/yyyy ou dd-mm-yyyy
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if(m){
+    let [_, d, mo, y] = m;
+    if(y.length === 2) y = '20'+y;
+    const dt = new Date(Number(y), Number(mo)-1, Number(d));
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+  // yyyy-mm-dd
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m){
+    const dt = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+  // serial numérico do Sheets
+  if(/^\d+(\.\d+)?$/.test(s) && Number(s) > 20000 && Number(s) < 60000){
+    return excelSerialToDate(Number(s));
+  }
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function formatDateBR(dateOrRaw){
+  const dt = (dateOrRaw instanceof Date) ? dateOrRaw : parseDateFlexible(dateOrRaw);
+  if(!dt) return (dateOrRaw || '—');
+  const p = n => String(n).padStart(2,'0');
+  return `${p(dt.getDate())}/${p(dt.getMonth()+1)}/${dt.getFullYear()}`;
+}
+
+function formatMonthYearBR(raw){
+  const dt = parseDateFlexible(raw);
+  if(dt){
+    const p = n => String(n).padStart(2,'0');
+    return `${p(dt.getMonth()+1)}/${dt.getFullYear()}`;
+  }
+  return raw || '—'; // já pode vir pronto como "jan/2026" na planilha
+}
+
+function formatCurrencyBRL(n){
+  if(n === null || n === undefined || isNaN(n)) return '—';
+  return n.toLocaleString('pt-BR', {style:'currency', currency:'BRL', maximumFractionDigits:0});
+}
+
+function formatPercent(n, casas=1){
+  if(n === null || n === undefined || isNaN(n)) return '—';
+  return n.toLocaleString('pt-BR', {minimumFractionDigits:casas, maximumFractionDigits:casas}) + '%';
+}
+
+// Localiza, dentro de um bloco de linhas, a linha cujo rótulo (1ª coluna
+// não vazia) contém a palavra-chave informada — usado nos gráficos de
+// combinação (semanal/mensal), onde as SÉRIES são LINHAS da planilha.
+function findRowByLabel(block, keyword){
+  const kw = keyword.toLowerCase();
+  return block.find(row => (row[0]||'').toLowerCase().includes(kw)) || null;
+}
+
+/* ==================================================================
+   4) RENDERIZAÇÃO — construção do HTML de cada aba
+   ================================================================== */
+function destroyChart(id){
+  if(STATE.charts[id]){ STATE.charts[id].destroy(); delete STATE.charts[id]; }
+}
+
+function buildErrorNotice(msg){
+  return `<div class="notice err">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div><b data-i18n="errTitle">${I18N[STATE.lang].errTitle}</b><br>${I18N[STATE.lang].errBody} <code>${msg}</code></div>
+  </div>`;
+}
+
+function renderTabTitles(){
+  const t1 = (STATE.aba1.grid && cell(STATE.aba1.grid,'A',1)) || 'Obra 01';
+  const t2 = (STATE.aba2.grid && cell(STATE.aba2.grid,'A',1)) || 'Obra 02';
+  document.getElementById('tabBtnAba1').textContent = t1 || 'Aba 01';
+  document.getElementById('tabBtnAba2').textContent = t2 || 'Aba 02';
+  const dt = (STATE.aba1.grid && cell(STATE.aba1.grid,'A',1)) || (STATE.aba2.grid && cell(STATE.aba2.grid,'A',1));
+  // Enquanto o link do CSV não é inserido, mantém a sugestão de título
+  // baseada no nome do arquivo de origem informado ("Sabará_Platz rev. 02.xlsx").
+  document.getElementById('dashTitle').textContent = dt
+    ? `DASHBOARD DO ASSUNTO: ${dt.toUpperCase()}`
+    : 'DASHBOARD DO ASSUNTO: SABARÁ PLATZ';
+}
+
+function renderAllTabs(){
+  const container = document.getElementById('tabContent');
+  container.innerHTML =
+    `<div class="tab-panel ${STATE.activeTab==='aba1'?'active':''}" id="panel-aba1">${panelSkeleton('aba1')}</div>` +
+    `<div class="tab-panel ${STATE.activeTab==='aba2'?'active':''}" id="panel-aba2">${panelSkeleton('aba2')}</div>`;
+  renderTabData('aba1');
+  renderTabData('aba2');
+}
+
+function switchTab(tab){
+  STATE.activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+tab));
+}
+
+function panelSkeleton(tabKey){
+  return `
+  <div class="section">
+    <div class="section-head"><span class="section-num">01</span><h2 class="section-title" data-i18n="secPrazos">Prazos Contratuais</h2></div>
+    <div id="${tabKey}-prazos"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><span class="section-num">02</span><h2 class="section-title" data-i18n="secFisico">Status Físico</h2></div>
+    <div class="grid grid-4" id="${tabKey}-fisico"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><span class="section-num">03</span><h2 class="section-title" data-i18n="secFinanceiro">Status Financeiro</h2></div>
+    <div class="card"><div class="chart-box h-320"><canvas id="${tabKey}-chartFinanceiro"></canvas></div></div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="section">
+      <div class="section-head"><span class="section-num">04</span><h2 class="section-title" data-i18n="secSuprimentos">Status Suprimentos</h2></div>
+      <div class="card"><div class="chart-box h-280"><canvas id="${tabKey}-chartSuprimentos"></canvas></div></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><span class="section-num">05</span><h2 class="section-title" data-i18n="secProxContrat">Próximas Contratações</h2></div>
+      <div id="${tabKey}-proxContrat"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><span class="section-num">06</span><h2 class="section-title" data-i18n="secEfetivo">Efetivo de Obra</h2></div>
+    <div class="card"><div class="chart-box h-380"><canvas id="${tabKey}-chartEfetivo"></canvas></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><span class="section-num">07</span><h2 class="section-title" data-i18n="secSemanal">Evolução Semanal</h2></div>
+    <div class="card"><div class="chart-box h-320"><canvas id="${tabKey}-chartSemanal"></canvas></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><span class="section-num">08</span><h2 class="section-title" data-i18n="secMensal">Evolução Mensal</h2></div>
+    <div class="card"><div class="chart-box h-320"><canvas id="${tabKey}-chartMensal"></canvas></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><span class="section-num">09</span><h2 class="section-title" data-i18n="secPavimento">Evolução por Pavimento</h2></div>
+    <div class="card"><div class="chart-box h-tall" id="${tabKey}-pavimentoBox"><canvas id="${tabKey}-chartPavimento"></canvas></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><span class="section-num">10</span><h2 class="section-title" data-i18n="secImagens">Registro Fotográfico</h2></div>
+    <div id="${tabKey}-imagens"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><span class="section-num">✦</span><h2 class="section-title" data-i18n="secExplorer">Explorador de Dados</h2></div>
+    <div class="filter-bar">
+      <div class="filter-field">
+        <label data-i18n="fltTipo">Tipo de gráfico</label>
+        <select class="filter-select" id="${tabKey}-explType">
+          <option value="bar" data-i18n="fltBar">Barras</option>
+          <option value="line" data-i18n="fltLine">Linha</option>
+          <option value="doughnut" data-i18n="fltDoughnut">Rosca</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label data-i18n="fltCol">Coluna de dados</label>
+        <select class="filter-select" id="${tabKey}-explCol"></select>
+      </div>
+      <button class="btn btn-primary" onclick="renderExplorer('${tabKey}')" data-i18n="fltApply">Gerar gráfico</button>
+    </div>
+    <div class="card"><div class="chart-box h-320"><canvas id="${tabKey}-chartExplorer"></canvas></div></div>
+  </div>
+  `;
+}
+
+/* ------------------------------------------------------------------
+   Renderização por aba: chama todas as seções, isolando erros por
+   bloco (uma seção com dado ausente não derruba as demais).
+   ------------------------------------------------------------------ */
+function renderTabData(tabKey){
+  const st = STATE[tabKey];
+  const cfg = RANGE_CONFIG[tabKey];
+
+  if(!st.grid){
+    document.getElementById(`${tabKey}-prazos`).innerHTML = buildErrorNotice(st.error || 'sem dados');
+    return;
+  }
+
+  safeRun(() => renderPrazos(tabKey, st.grid, cfg));
+  safeRun(() => renderFisico(tabKey, st.grid, cfg));
+  safeRun(() => renderFinanceiro(tabKey, st.grid, cfg));
+  safeRun(() => renderSuprimentos(tabKey, st.grid, cfg));
+  safeRun(() => renderProxContrat(tabKey, st.grid, cfg));
+  safeRun(() => renderEfetivo(tabKey, st.grid, cfg));
+  safeRun(() => renderCombo(tabKey, st.grid, cfg.semanal, 'Semanal', 'chartSemanal', {min:60,max:90,step:5}, {min:0,max:3,step:.5}, false));
+  safeRun(() => renderCombo(tabKey, st.grid, cfg.mensal, 'Mensal', 'chartMensal', {min:0,max:100,step:10}, {min:0,max:10,step:1}, true));
+  safeRun(() => renderPavimento(tabKey, st.grid, cfg));
+  safeRun(() => renderImagensNotice(tabKey));
+  safeRun(() => populateExplorerColumns(tabKey, st.grid));
+}
+
+function safeRun(fn){
+  try{ fn(); } catch(e){ console.error(e); }
+}
+
+/* ---------- 1) PRAZOS CONTRATUAIS (tabela com mescla aproximada) ---------- */
+function renderPrazos(tabKey, grid, cfg){
+  const r = cfg.prazos;
+  const block = range(grid, r.c1, r.r1, r.c2, r.r2);
+  document.getElementById(`${tabKey}-prazos`).innerHTML = renderMergedTable(block, {dateCols:'auto'});
+}
+
+// Constrói uma tabela HTML aproximando mesclagem de células: quando uma
+// célula está vazia mas a célula da mesma coluna na linha anterior tem
+// valor, ela é tratada como parte de um rowspan (comportamento típico de
+// exportação CSV de células mescladas no Google Sheets).
+function renderMergedTable(block, opts={}){
+  if(!block.length || block.every(r=>r.every(c=>c===''))) return `<div class="empty-state" data-i18n="noData">Sem dados disponíveis para este bloco.</div>`;
+  const nRows = block.length, nCols = block[0].length;
+  const skip = Array.from({length:nRows},()=>Array(nCols).fill(false));
+  const rowspan = Array.from({length:nRows},()=>Array(nCols).fill(1));
+
+  for(let c=0;c<nCols;c++){
+    for(let r=0;r<nRows;r++){
+      if(skip[r][c]) continue;
+      if(block[r][c] === '') continue;
+      let span = 1;
+      for(let r2=r+1;r2<nRows;r2++){
+        if(block[r2][c] === ''){ skip[r2][c]=true; span++; } else break;
+      }
+      rowspan[r][c] = span;
+    }
+  }
+
+  let html = '<div class="table-wrap"><table class="data-table"><tbody>';
+  for(let r=0;r<nRows;r++){
+    html += '<tr>';
+    for(let c=0;c<nCols;c++){
+      if(skip[r][c]) continue;
+      let val = block[r][c];
+      const looksDate = /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(val) || (opts.dateCols==='auto' && /^\d{5}$/.test(val));
+      if(looksDate) val = formatDateBR(val);
+      const rs = rowspan[r][c] > 1 ? ` rowspan="${rowspan[r][c]}"` : '';
+      const cls = c===0 ? ' class="merged-label"' : '';
+      html += `<td${rs}${cls}>${val || '—'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+  return html;
+}
+
+/* ---------- 2) STATUS FÍSICO (2 roscas + 2 KPIs) ---------- */
+function renderFisico(tabKey, grid, cfg){
+  const previsto  = parseNumberBR(cell(grid, cfg.fisico.previstoCell[0], cfg.fisico.previstoCell[1]));
+  const realizado = parseNumberBR(cell(grid, cfg.fisico.realizadoCell[0], cfg.fisico.realizadoCell[1]));
+  const desvioDias= parseNumberBR(cell(grid, cfg.fisico.desvioDiasCell[0], cfg.fisico.desvioDiasCell[1]));
+  const desvioPct = (previsto!==null && realizado!==null) ? (realizado - previsto) : null;
+
+  const host = document.getElementById(`${tabKey}-fisico`);
+  host.innerHTML = `
+    <div class="card span-4"><p class="card-title" data-i18n="fisicoPrevisto">Previsto</p><div class="chart-box h-220"><canvas id="${tabKey}-donutPrevisto"></canvas></div></div>
+    <div class="card span-4"><p class="card-title" data-i18n="fisicoRealizado">Realizado</p><div class="chart-box h-220"><canvas id="${tabKey}-donutRealizado"></canvas></div></div>
+    <div class="kpi span-2">
+      <span class="kpi-label" data-i18n="fisicoDesvioPct">Desvio (%)</span>
+      <span class="kpi-value ${desvioPct>=0?'pos':'neg'}">${desvioPct!==null?(desvioPct>=0?'+':'')+formatPercent(desvioPct):'—'}</span>
+      <span class="kpi-sub" data-i18n="fisicoDesvioPctSub">Realizado − Previsto</span>
+    </div>
+    <div class="kpi span-2">
+      <span class="kpi-label" data-i18n="fisicoDesvioDias">Desvio (dias)</span>
+      <span class="kpi-value ${desvioDias>=0?'pos':'neg'}">${desvioDias!==null?desvioDias:'—'}</span>
+      <span class="kpi-sub" data-i18n="fisicoDesvioDiasSub">Base: célula de controle da planilha</span>
+    </div>`;
+
+  buildDonut(`${tabKey}-donutPrevisto`, previsto, PALETTE.steel);
+  buildDonut(`${tabKey}-donutRealizado`, realizado, PALETTE.teal);
+}
+
+function buildDonut(canvasId, value, color){
+  destroyChart(canvasId);
+  const v = value===null ? 0 : Math.max(0, Math.min(100, value));
+  const ctx = document.getElementById(canvasId);
+  if(!ctx) return;
+  STATE.charts[canvasId] = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels:['Concluído','Restante'], datasets:[{ data:[v, 100-v], backgroundColor:[color, '#E9EDF5'], borderWidth:0, cutout:'74%' }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{enabled:true},
+        datalabels:{
+          display: (ctxD) => ctxD.dataIndex===0,
+          color: '#0F1F3D', font:{weight:800, size:22, family:"Manrope"},
+          formatter:() => (value===null?'—':formatPercent(v,0))
+        }
+      }
+    }
+  });
+}
+
+/* ---------- 3) STATUS FINANCEIRO (barras horizontais) ---------- */
+function renderFinanceiro(tabKey, grid, cfg){
+  const r = cfg.financeiro;
+  const block = range(grid, r.c1, r.r1, r.c2, r.r2).filter(row => row[0] !== '');
+  const labels = block.map(row => row[0]);
+  const values = block.map(row => parseNumberBR(row[1]));
+  const pmg = values[0] || null; // referência para % quando a coluna C não traz percentual pronto
+  const pctFromSheet = block.map(row => parseNumberBR(row[2]));
+
+  destroyChart(`${tabKey}-chartFinanceiro`);
+  const ctx = document.getElementById(`${tabKey}-chartFinanceiro`);
+  if(!ctx) return;
+  STATE.charts[`${tabKey}-chartFinanceiro`] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ data: values, backgroundColor: SERIES_COLORS, borderRadius:6, barThickness:34 }] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      scales:{ x:{ grid:{color:'#EEF1F7'}, ticks:{callback:v=>formatCurrencyBRL(v)} }, y:{ grid:{display:false} } },
+      plugins:{
+        legend:{display:false},
+        datalabels:{
+          anchor:'end', align:'end', color:'#0F1F3D', font:{weight:700, size:12},
+          formatter:(val, ctxD) => {
+            const idx = ctxD.dataIndex;
+            const pct = pctFromSheet[idx]!==null ? pctFromSheet[idx] : (pmg && idx>0 ? (val/pmg*100) : null);
+            const pctStr = (idx>0 && pct!==null) ? ` (${formatPercent(pct,0)})` : '';
+            return formatCurrencyBRL(val) + pctStr;
+          }
+        }
+      }
+    },
+    plugins:[ChartDataLabels]
+  });
+}
+
+/* ---------- 4) STATUS SUPRIMENTOS (rosca contratado x a contratar) ---------- */
+function renderSuprimentos(tabKey, grid, cfg){
+  const contratado = parseNumberBR(cell(grid, cfg.suprimentos.contratadoCell[0], cfg.suprimentos.contratadoCell[1]));
+  const aContratar = parseNumberBR(cell(grid, cfg.suprimentos.aContratarCell[0], cfg.suprimentos.aContratarCell[1]));
+  destroyChart(`${tabKey}-chartSuprimentos`);
+  const ctx = document.getElementById(`${tabKey}-chartSuprimentos`);
+  if(!ctx) return;
+  const data = [contratado||0, aContratar||0];
+  STATE.charts[`${tabKey}-chartSuprimentos`] = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels:['Contratado','A Contratar'], datasets:[{ data, backgroundColor:[PALETTE.teal, PALETTE.amber], borderWidth:0, cutout:'62%' }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ usePointStyle:true, boxWidth:8, font:{weight:600} } },
+        datalabels:{ color:'#fff', font:{weight:800, size:13}, formatter:(v)=> data.reduce((a,b)=>a+b,0)>0 ? formatPercent(v/data.reduce((a,b)=>a+b,0)*100,0) : '' }
+      }
+    }
+  });
+}
+
+/* ---------- 5) PRÓXIMAS CONTRATAÇÕES (tabela com moeda + mescla) ---------- */
+function renderProxContrat(tabKey, grid, cfg){
+  const r = cfg.proxContrat;
+  const block = range(grid, r.c1, r.r1, r.c2, r.r2).map(row => row.map((v,idx) => {
+    if(idx === row.length-1){ // assume última coluna = valor monetário
+      const n = parseNumberBR(v);
+      return n!==null ? formatCurrencyBRL(n) : v;
+    }
+    return v;
+  }));
+  document.getElementById(`${tabKey}-proxContrat`).innerHTML = renderMergedTable(block, {dateCols:'auto'});
+}
+
+/* ---------- 6) EFETIVO DE OBRA (colunas verticais) ---------- */
+function renderEfetivo(tabKey, grid, cfg){
+  const r = cfg.efetivo;
+  const block = range(grid, r.c1, r.r1, r.c2, r.r2).filter(row => row[0] !== '');
+  const labels = block.map(row => row[0]);
+  const values = block.map(row => parseNumberBR(row[1]));
+  destroyChart(`${tabKey}-chartEfetivo`);
+  const ctx = document.getElementById(`${tabKey}-chartEfetivo`);
+  if(!ctx) return;
+  STATE.charts[`${tabKey}-chartEfetivo`] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ data:values, backgroundColor:PALETTE.steel, borderRadius:5, maxBarThickness:26 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{ ticks:{ autoSkip:false, maxRotation:60, minRotation:40, font:{size:10.5} }, grid:{display:false} }, y:{ grid:{color:'#EEF1F7'} } },
+      plugins:{ legend:{display:false}, datalabels:{ anchor:'end', align:'end', color:'#0F1F3D', font:{weight:700, size:11}, formatter:v=>v } }
+    }
+  });
+}
+
+/* ---------- 7 e 8) GRÁFICOS DE COMBINAÇÃO (semanal / mensal) ----------
+   Estrutura de origem: a 1ª linha do bloco traz os rótulos do eixo X
+   (datas ou meses); as linhas seguintes são as SÉRIES, identificadas
+   pelo texto da 1ª coluna (ex.: "SEMANAL PREVISTO", "ACUMULADO REALIZADO"). */
+function renderCombo(tabKey, grid, blockCfg, kindLabel, canvasKey, primaryScale, secondaryScale, isMonthly){
+  const block = range(grid, blockCfg.c1, blockCfg.r1, blockCfg.c2, blockCfg.r2);
+  const headerRow = block[0];
+  const xLabels = headerRow.slice(1).map(v => isMonthly ? formatMonthYearBR(v) : formatDateBR(v));
+
+  const rows = block.slice(1);
+  const semPrev  = findRowByLabel(rows, isMonthly ? 'mensal previsto'  : 'semanal previsto');
+  const semReal  = findRowByLabel(rows, isMonthly ? 'mensal realizado' : 'semanal realizado');
+  const acPrev   = findRowByLabel(rows, 'acumulado previsto');
+  const acReal   = findRowByLabel(rows, 'acumulado realizado');
+
+  const toNums = row => row ? row.slice(1).map(parseNumberBR) : [];
+
+  destroyChart(`${tabKey}-${canvasKey}`);
+  const ctx = document.getElementById(`${tabKey}-${canvasKey}`);
+  if(!ctx) return;
+
+  STATE.charts[`${tabKey}-${canvasKey}`] = new Chart(ctx, {
+    data:{
+      labels: xLabels,
+      datasets:[
+        { type:'bar', label: isMonthly?'Mensal Previsto':'Semanal Previsto', data: toNums(semPrev), backgroundColor:PALETTE.steel+'CC', yAxisID:'y1', borderRadius:4 },
+        { type:'bar', label: isMonthly?'Mensal Realizado':'Semanal Realizado', data: toNums(semReal), backgroundColor:PALETTE.teal+'CC', yAxisID:'y1', borderRadius:4 },
+        { type:'line', label:'Acumulado Previsto', data: toNums(acPrev), borderColor:PALETTE.amber, backgroundColor:PALETTE.amber, yAxisID:'y', tension:.3, borderWidth:2.5, pointRadius:3 },
+        { type:'line', label:'Acumulado Realizado', data: toNums(acReal), borderColor:PALETTE.rose, backgroundColor:PALETTE.rose, yAxisID:'y', tension:.3, borderWidth:2.5, pointRadius:3 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      scales:{
+        y:{ position:'left', min:primaryScale.min, max:primaryScale.max, ticks:{ stepSize:primaryScale.step }, grid:{color:'#EEF1F7'}, title:{display:true,text:'% Acumulado'} },
+        y1:{ position:'right', min:secondaryScale.min, max:secondaryScale.max, ticks:{ stepSize:secondaryScale.step }, grid:{display:false}, title:{display:true,text:'% Período'} },
+      },
+      plugins:{ legend:{ position:'bottom', labels:{usePointStyle:true, boxWidth:8, font:{weight:600}} }, datalabels:{display:false} }
+    }
+  });
+}
+
+/* ---------- 9) EVOLUÇÃO POR PAVIMENTO (barras horizontais) ---------- */
+function renderPavimento(tabKey, grid, cfg){
+  const r = cfg.pavimento;
+  const block = range(grid, r.c1, r.r1, r.c2, r.r2).filter(row => row[0] !== '');
+  const labels = block.map(row => row[0]);
+  // assume última coluna preenchida da linha como % Realizado
+  const values = block.map(row => {
+    const lastFilled = [...row].reverse().find(v => v !== '');
+    return parseNumberBR(lastFilled);
+  });
+
+  // altura dinâmica: garante barras largas e legíveis mesmo com muitos pavimentos
+  const rowHeight = 34;
+  document.getElementById(`${tabKey}-pavimentoBox`).style.height = Math.max(360, labels.length * rowHeight) + 'px';
+
+  destroyChart(`${tabKey}-chartPavimento`);
+  const ctx = document.getElementById(`${tabKey}-chartPavimento`);
+  if(!ctx) return;
+  STATE.charts[`${tabKey}-chartPavimento`] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ data:values, backgroundColor:PALETTE.steel, borderRadius:5, barPercentage:.7, categoryPercentage:.85 }] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      scales:{ x:{ min:0, max:100, grid:{color:'#EEF1F7'}, ticks:{callback:v=>v+'%'} }, y:{ grid:{display:false}, ticks:{ font:{weight:800, size:12}, color:'#0F1F3D' } } },
+      plugins:{
+        legend:{display:false},
+        datalabels:{ anchor:'center', align:'center', color:'#fff', font:{weight:800, size:12}, formatter:v=> v!==null? formatPercent(v,0):'' }
+      }
+    }
+  });
+}
+
+/* ---------- 10) REGISTRO FOTOGRÁFICO — limitação técnica do CSV ---------- */
+function renderImagensNotice(tabKey){
+  document.getElementById(`${tabKey}-imagens`).innerHTML = `
+    <div class="notice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <div data-i18n="imgNotice">
+        A leitura via SheetJS extrai texto e números das células, mas não as imagens flutuantes inseridas sobre a planilha (fotos coladas não ficam vinculadas a uma célula específica).
+        Por isso esta seção não pode exibir automaticamente o registro fotográfico da planilha.
+        Alternativas: (1) inserir os links diretos das fotos (Google Drive, Imgur, SharePoint com link público) em uma coluna de texto para o dashboard exibi-los, ou (2) manter o registro fotográfico como anexo separado no repositório.
+      </div>
+    </div>`;
+}
+
+/* ---------- EXPLORADOR DE DADOS (filtro dinâmico por coluna) ---------- */
+function populateExplorerColumns(tabKey, grid){
+  const header = grid[0] || [];
+  const select = document.getElementById(`${tabKey}-explCol`);
+  if(!select) return;
+  select.innerHTML = header.map((h,i) => `<option value="${i}">${h ? h : 'Coluna ' + String.fromCharCode(65+i)}</option>`).join('');
+}
+
+function renderExplorer(tabKey){
+  const grid = STATE[tabKey].grid;
+  if(!grid) return;
+  const type = document.getElementById(`${tabKey}-explType`).value;
+  const colIdx = Number(document.getElementById(`${tabKey}-explCol`).value);
+  const rows = grid.slice(1).filter(r => r[0] !== '' && r[colIdx] !== undefined && r[colIdx] !== '');
+  const labels = rows.map(r => r[0]);
+  const values = rows.map(r => parseNumberBR(r[colIdx]));
+
+  destroyChart(`${tabKey}-chartExplorer`);
+  const ctx = document.getElementById(`${tabKey}-chartExplorer`);
+  if(!ctx) return;
+  STATE.charts[`${tabKey}-chartExplorer`] = new Chart(ctx, {
+    type: type === 'doughnut' ? 'doughnut' : type,
+    data:{
+      labels,
+      datasets:[{
+        label: grid[0][colIdx] || 'Valor',
+        data: values,
+        backgroundColor: type==='doughnut' ? SERIES_COLORS : PALETTE.violet,
+        borderColor: type==='line' ? PALETTE.violet : undefined,
+        borderRadius: type==='bar' ? 6 : undefined,
+        tension:.3
+      }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:type==='doughnut', position:'bottom' } } }
+  });
+}
+
+/* ==================================================================
+   5) EXPORTAÇÃO EM PDF (captura o dashboard renderizado)
+   ================================================================== */
+async function exportPdf(){
+  const { jsPDF } = window.jspdf;
+  const target = document.getElementById('appRoot');
+  const btnPdf = document.getElementById('btnPdf');
+  btnPdf.disabled = true;
+  try{
+    const canvas = await html2canvas(target, { scale:1.5, backgroundColor:'#F4F6F9', useCORS:true });
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = canvas.height * (imgW / canvas.width);
+    let heightLeft = imgH, position = 0;
+    pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+    heightLeft -= pageH;
+    while(heightLeft > 0){
+      position = heightLeft - imgH;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+      heightLeft -= pageH;
+    }
+    pdf.save('dashboard-obras.pdf');
+  } catch(e){
+    alert('Não foi possível gerar o PDF: ' + e.message);
+  } finally {
+    btnPdf.disabled = false;
+  }
+}
+
+/* ==================================================================
+   6) TRADUÇÃO PT / EN (troca de textos estáticos via data-i18n)
+   ================================================================== */
+const I18N = {
+  pt:{
+    eyebrow:'Business Intelligence · Construção Civil', subtitle:'Acompanhamento executivo de prazos, custos, produção e suprimentos',
+    btnRefresh:'Atualizar dados', btnPdf:'Exportar PDF',
+    statusOk:'Dados carregados', statusLoading:'Atualizando dados…', statusError:'Falha ao carregar dados', statusPartial:'Uma das abas falhou ao carregar',
+    lastUpdate:'Última atualização:', footer:'Dashboard gerado automaticamente a partir da planilha de origem · Uso interno de gestão de obras',
+    secPrazos:'Prazos Contratuais', secFisico:'Status Físico', secFinanceiro:'Status Financeiro', secSuprimentos:'Status Suprimentos',
+    secProxContrat:'Próximas Contratações', secEfetivo:'Efetivo de Obra', secSemanal:'Evolução Semanal', secMensal:'Evolução Mensal',
+    secPavimento:'Evolução por Pavimento', secImagens:'Registro Fotográfico', secExplorer:'Explorador de Dados',
+    fisicoPrevisto:'Previsto', fisicoRealizado:'Realizado', fisicoDesvioPct:'Desvio (%)', fisicoDesvioPctSub:'Realizado − Previsto',
+    fisicoDesvioDias:'Desvio (dias)', fisicoDesvioDiasSub:'Base: célula de controle da planilha',
+    fltTipo:'Tipo de gráfico', fltBar:'Barras', fltLine:'Linha', fltDoughnut:'Rosca', fltCol:'Coluna de dados', fltApply:'Gerar gráfico',
+    errTitle:'Não foi possível carregar os dados.', errBody:'O link do SharePoint pode estar bloqueando acesso externo (CORS/login) ou o caminho de fallback local (./data/) ainda não foi criado no repositório. Veja as opções A/B nos comentários do código. Detalhe técnico:',
+    noData:'Sem dados disponíveis para este bloco.',
+    imgNotice:'A leitura via SheetJS extrai texto e números das células, mas não as imagens flutuantes inseridas sobre a planilha. Por isso esta seção não pode exibir automaticamente o registro fotográfico da planilha. Alternativas: (1) inserir os links diretos das fotos (Google Drive, Imgur, SharePoint com link público) em uma coluna de texto para o dashboard exibi-los, ou (2) manter o registro fotográfico como anexo separado no repositório.'
+  },
+  en:{
+    eyebrow:'Business Intelligence · Construction', subtitle:'Executive tracking of schedule, cost, production and procurement',
+    btnRefresh:'Refresh data', btnPdf:'Export PDF',
+    statusOk:'Data loaded', statusLoading:'Refreshing data…', statusError:'Failed to load data', statusPartial:'One tab failed to load',
+    lastUpdate:'Last update:', footer:'Dashboard automatically generated from the source spreadsheet · Internal construction management use',
+    secPrazos:'Contract Schedule', secFisico:'Physical Status', secFinanceiro:'Financial Status', secSuprimentos:'Procurement Status',
+    secProxContrat:'Upcoming Contracts', secEfetivo:'Site Workforce', secSemanal:'Weekly Progress', secMensal:'Monthly Progress',
+    secPavimento:'Progress by Floor', secImagens:'Photo Log', secExplorer:'Data Explorer',
+    fisicoPrevisto:'Planned', fisicoRealizado:'Actual', fisicoDesvioPct:'Deviation (%)', fisicoDesvioPctSub:'Actual − Planned',
+    fisicoDesvioDias:'Deviation (days)', fisicoDesvioDiasSub:'Source: spreadsheet control cell',
+    fltTipo:'Chart type', fltBar:'Bar', fltLine:'Line', fltDoughnut:'Doughnut', fltCol:'Data column', fltApply:'Generate chart',
+    errTitle:'Could not load data.', errBody:'The SharePoint link may be blocking external access (CORS/login), or the local fallback path (./data/) has not been created in the repository yet. See options A/B in the code comments. Technical detail:',
+    noData:'No data available for this block.',
+    imgNotice:'Reading via SheetJS extracts text and numbers from cells, but not floating images placed over the sheet. This section therefore cannot automatically display the spreadsheet photo log. Alternatives: (1) add direct photo links (Google Drive, Imgur, publicly shared SharePoint) in a text column so the dashboard can display them, or (2) keep the photo log as a separate attachment in the repository.'
+  }
+};
+
+function toggleLanguage(){
+  STATE.lang = STATE.lang === 'pt' ? 'en' : 'pt';
+  document.getElementById('btnLang').textContent = STATE.lang === 'pt' ? 'EN' : 'PT';
+  document.documentElement.lang = STATE.lang === 'pt' ? 'pt-BR' : 'en';
   applyTranslations();
 }
 
-function applyTranslations() {
-  const t = TRANSLATIONS[STATE.language];
+function applyTranslations(){
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (t[key]) el.textContent = t[key];
+    if(I18N[STATE.lang][key]) el.textContent = I18N[STATE.lang][key];
   });
-  document.getElementById('lang-btn').textContent = t['lang-btn'];
+  // painéis de aba são recriados via innerHTML; reaplica após rerender também
 }
 
-/* ================================================
-   TOAST (notificações flutuantes)
-   ================================================ */
-function showToast(msg, type = 'info') {
-  const container = document.getElementById('toast-container');
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = msg;
-  container.appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
-}
-
-/* ================================================
-   INICIALIZAÇÃO
-   ================================================ */
+/* ==================================================================
+   7) INICIALIZAÇÃO
+   ================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
-  applyTranslations();
-  // Mostra dica inicial
-  showToast('Dashboard pronto! Importe um arquivo CSV ou XLSX para começar.', 'info');
+  refreshAllData();
 });
 </script>
 </body>
